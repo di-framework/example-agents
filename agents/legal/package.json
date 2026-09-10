@@ -1,0 +1,25 @@
+{
+  "name": "legal-agent",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "scripts": {
+    "start": "bun src/index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "intake": "bun src/index.ts --intake"
+  },
+  "dependencies": {
+    "@di-framework/ai": "5.3.2",
+    "@di-framework/ai-utils": "5.3.2",
+    "@di-framework/auth": "5.3.2",
+    "@di-framework/core": "5.3.2",
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@legal-agent/plugin",
+  "version": "0.3.0",
+  "description": "Three skills for jurisprudence, general legal work and state reference corpora, with a GitHub GraphQL practice catalog",
+  "type": "module",
+  "private": true,
+  "files": [
+    "plugin.json",
+    "mcp_config.json",
+    "rules",
+    "skills",
+    "README.md",
+    "mcp"
+  ],
+  "keywords": [
+    "legal",
+    "antigravity",
+    "agent-plugin",
+    "skills",
+    "mcp",
+    "state-law",
+    "legal-references",
+    "legal-skills-open",
+    "thomasmore"
+  ],
+  "license": "UNLICENSED"
+}

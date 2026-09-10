@@ -1,0 +1,9 @@
+{
+  "name": "legal",
+  "displayName": "Legal — Jurisprudence, General, State",
+  "description": "Three skills for jurisprudence, general legal work and state reference corpora, with a GitHub GraphQL practice catalog",
+  "version": "0.3.0",
+  "jurisdiction": "us",
+  "language": "en",
+  "license": "UNLICENSED"
+}

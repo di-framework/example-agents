@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "legal-skills-open": {
+      "command": "bun",
+      "args": ["${pluginDir}/mcp/server.ts"],
+      "description": "Read-only GitHub GraphQL catalog: pin a commit, navigate directories, and fetch legal skill and license text."
+    }
+  }
+}
