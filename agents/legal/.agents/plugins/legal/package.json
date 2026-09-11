@@ -1,7 +1,7 @@
 {
   "name": "@legal-agent/plugin",
-  "version": "0.3.0",
-  "description": "Three skills for jurisprudence, general legal work and state reference corpora, with a GitHub GraphQL practice catalog",
+  "version": "0.5.0",
+  "description": "Five skills for jurisprudence, general legal work, state reference corpora, US constitutional supremacy analysis and civil procedure, with a GitHub GraphQL practice catalog",
   "type": "module",
   "private": true,
   "files": [

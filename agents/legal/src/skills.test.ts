@@ -4,9 +4,17 @@ import { ChatResponse, FakeChatModel, toolCall, toolCallResponse } from '@di-fra
 import { validateSkillDirectory } from '@di-framework/ai-utils';
 import { createLegalAgent } from './agent.ts';
 
-const names = ['general', 'jurisprudence', 'state'];
+const names = [
+  'case-law-research',
+  'case-read',
+  'civil-procedure',
+  'constitutional',
+  'general',
+  'jurisprudence',
+  'state',
+];
 
-test('the three consolidated skills are valid and activate through the agent tool loop', async () => {
+test('the consolidated skills are valid and activate through the agent tool loop', async () => {
   const workspace = resolve(import.meta.dir, '..');
   const model = new FakeChatModel((prompt) => {
     const name = prompt.getUserMessage().text ?? '';

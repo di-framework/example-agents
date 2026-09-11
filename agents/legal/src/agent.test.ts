@@ -29,7 +29,7 @@ test('loads legal rules and executes an actual Skill with injected inference', a
   });
   const legal = await createLegalAgent(model, { workspace, mcp: false });
   try {
-    expect(legal.toolbox.skills).toHaveLength(3);
+    expect(legal.toolbox.skills).toHaveLength(7);
     expect((await legal.agent.chat('Begin intake')).content).toBe('Intake ready');
     expect(legal.toolbox.runtime.activeSkill()?.name).toBe('state');
     expect(model.calls).toHaveLength(2);
@@ -50,7 +50,7 @@ test('resolves .agents/plugin from cwd and fails when the plugin is missing', as
     process.chdir(directory);
     const legal = await createLegalAgent(new FakeChatModel(), { mcp: false });
     expect(legal.plugin.basePath).toBe(join(directory, '.agents/plugin/legal'));
-    expect(legal.toolbox.skills).toHaveLength(3);
+    expect(legal.toolbox.skills).toHaveLength(7);
     await legal.close();
     await rm(join(directory, '.agents/plugin/legal/plugin.json'));
     expect(() => loadLegalPlugin()).toThrow('Expected legal plugin');
@@ -70,6 +70,7 @@ test('MCP tools reach the model and sessions close exactly once', async () => {
   const legal = await createLegalAgent(model, {
     workspace,
     connectMcp: async (name, server) => {
+      if (name === 'courtlistener') return { tools: [], close: async () => {} };
       expect(name).toBe('legal-skills-open');
       expect(server.command).toBe('bun');
       // biome-ignore lint/suspicious/noTemplateCurlyInString: Assert the literal plugin placeholder.
@@ -107,7 +108,7 @@ test('unavailable MCP is reported while local skills remain usable', async () =>
     onWarning: (warning) => warnings.push(warning),
   });
   expect(warnings[0]).toContain('offline');
-  expect(legal.toolbox.skills).toHaveLength(3);
+  expect(legal.toolbox.skills).toHaveLength(7);
   expect((await legal.agent.chat('hello')).content).toBe('ok');
   await legal.close();
 });
@@ -147,7 +148,7 @@ test('HTTP MCP tools execute through the real SDK transport', async () => {
       ),
       {
         workspace,
-        connectMcp: async () => session,
+        connectMcp: async (name) => name === 'legal-skills-open' ? session : { tools: [], close: async () => {} },
       },
     );
     try {
