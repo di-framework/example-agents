@@ -27,5 +27,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts", ".agents/plugins/legal/mcp/**/*.ts"]
 }

@@ -2,7 +2,7 @@
  * CourtListener MCP — DI Framework S3VectorStore + CourtListener REST API.
  * Run: bun /absolute/path/caselaw.ts
  * MCP config: { "command": "bun", "args": ["/absolute/path/caselaw.ts"] }
- * Semantic search: AWS SDK credentials, uv, and the pinned local Hugging Face model below.
+ * Semantic search: AWS SDK credentials and a verified local ONNX bundle (bun run embeddings:prepare).
  * Warm the model once with `bun /absolute/path/caselaw.ts --warmup`.
  * API search/get additionally require COURTLISTENER_API_TOKEN.
  * Natural-language semantic queries stay local; query vectors are sent to AWS.
@@ -14,6 +14,9 @@ import { CallToolRequestSchema, ListToolsRequestSchema, type Tool } from '@model
 import { S3VectorsClient as AwsS3VectorsClient, QueryVectorsCommand, GetVectorsCommand, type QueryVectorsCommandInput } from '@aws-sdk/client-s3vectors';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { S3VectorStore, searchRequest, type S3VectorsClient, type Document } from '@di-framework/ai';
+import { MODEL } from './embeddings.ts';
+import { localEmbedding, closeEmbeddings, type Embed } from './embedding-client.ts';
+export { MODEL, MODEL_REVISION } from './embeddings.ts';
 
 const BASE = 'https://www.courtlistener.com/api/rest/v4/';
 const MAX_BYTES = 16 * 1024 * 1024;
@@ -91,58 +94,18 @@ function sourceUrl(value: unknown) {
   } catch { return null; }
 }
 
-export const MODEL = 'freelawproject/modernbert-embed-base_finetune_512';
-export const MODEL_REVISION = '04f0141fbc045122439d28d51ba670f3091e9ed8';
 const REGION = 'us-west-2', VECTOR_BUCKET = 'courtlistener', INDEX = 'modernbert-768';
 const STATE_BUCKET = 'courtlistener-import-547107369396-us-west-2';
-// Sentence Transformers applies the model's mean pooling and normalization modules.
-// Do not substitute another 768-dimensional model: the vector spaces must match.
-const EMBED_SCRIPT = `
-import json, sys, torch
-from sentence_transformers import SentenceTransformer
-torch.set_num_threads(4)
-request = json.load(sys.stdin)
-model = SentenceTransformer('${MODEL}', revision='${MODEL_REVISION}', trust_remote_code=False, device='cpu')
-vector = model.encode('search_query: ' + request['text'], normalize_embeddings=True, show_progress_bar=False)
-print(json.dumps(vector.tolist()))
-`;
-type Run = (command: string[], input?: unknown, signal?: AbortSignal, timeoutMs?: number) => Promise<any>;
 
-/** Fixed argv and JSON stdin: query text never passes through a shell. */
-export const runJson: Run = async (command, input, signal, timeoutMs = 60000) => {
+export async function embedQuery(text: string, signal?: AbortSignal, embed: Embed = localEmbedding) {
   signal?.throwIfAborted();
-  const process = Bun.spawn(command, { stdin: input === undefined ? 'ignore' : new Blob([JSON.stringify(input)]),
-    stdout: 'pipe', stderr: 'pipe', env: { ...Bun.env, TOKENIZERS_PARALLELISM: 'false' } });
-  const cancel = () => { process.kill(); };
-  signal?.addEventListener('abort', cancel, { once: true });
-  const timer = setTimeout(cancel, timeoutMs);
-  async function read(stream: ReadableStream<Uint8Array>, keep: boolean) {
-    const reader = stream.getReader(), chunks: Uint8Array[] = []; let size = 0;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        size += value.length;
-        if (size > MAX_BYTES) { cancel(); throw new UserError('Subprocess output exceeds 16 MiB'); }
-        if (keep) chunks.push(value);
-      }
-      return Buffer.concat(chunks).toString('utf8');
-    } finally { reader.releaseLock(); }
-  }
-  try {
-    const [stdout, , code] = await Promise.all([read(process.stdout, true), read(process.stderr, false), process.exited]);
-    signal?.throwIfAborted();
-    if (code !== 0) throw new UserError('Local embedding failed or timed out; install uv and run caselaw.ts --warmup');
-    return JSON.parse(stdout);
-  } finally { clearTimeout(timer); signal?.removeEventListener('abort', cancel); cancel(); }
-};
-
-export async function embedQuery(text: string, signal?: AbortSignal, run: Run = runJson) {
-  const vector = await run(['uv', 'run', '--python', '3.11', '--with', 'sentence-transformers==5.1.2',
-    '--with', 'transformers==4.57.6', 'python', '-c', EMBED_SCRIPT], { text }, signal);
+  let vector: number[];
+  try { vector = await embed(text, signal); }
+  catch (error) { throw new UserError(error instanceof Error ? error.message : 'Local embedding failed'); }
+  signal?.throwIfAborted();
   if (!Array.isArray(vector) || vector.length !== 768 || !vector.every(v => typeof v === 'number' && Number.isFinite(v)) || !vector.some(v => v !== 0))
     throw new UserError('Expected a finite, nonzero, 768-dimensional CourtListener query embedding');
-  return vector as number[];
+  return vector;
 }
 
 function vectorMetadata(value: unknown): Record<string, unknown> {
@@ -152,7 +115,7 @@ function vectorMetadata(value: unknown): Record<string, unknown> {
 }
 
 export class CourtListenerVectors {
-  constructor(private readonly run: Run = runJson,
+  constructor(private readonly embed: Embed = localEmbedding,
     private readonly vectorClient: Pick<AwsS3VectorsClient, 'send'> = new AwsS3VectorsClient({ region: REGION }),
     private readonly objectClient: Pick<S3Client, 'send'> = new S3Client({ region: REGION })) {}
 
@@ -203,7 +166,7 @@ export class CourtListenerVectors {
       },
     };
     return new S3VectorStore({ vectorBucketName: VECTOR_BUCKET, indexName: INDEX, region: REGION, client,
-      embeddingModel: { dimensions: 768, embed: text => embedQuery(text, signal, this.run),
+      embeddingModel: { dimensions: 768, embed: text => embedQuery(text, signal, this.embed),
         embedDocument: () => { throw new UserError('This MCP is read-only'); } } });
   }
 
@@ -347,11 +310,13 @@ export function createCourtListenerServer(client = new CourtListener()) {
 
 if (import.meta.main) {
   if (process.argv.includes('--warmup')) {
-    await embedQuery('jurisdiction');
-    console.error('CourtListener query model ready (768 dimensions).');
+    try {
+      await embedQuery('jurisdiction');
+      console.error('CourtListener ONNX query model ready (768 dimensions, @di-framework/ml WASM).');
+    } finally { closeEmbeddings(); }
   } else {
     const server = createCourtListenerServer();
     await server.connect(new StdioServerTransport());
-    process.stdin.on('end', () => { void server.close(); });
+    process.stdin.on('end', () => { closeEmbeddings(); void server.close(); });
   }
 }

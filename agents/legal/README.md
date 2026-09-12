@@ -16,24 +16,41 @@ Put what you know in `case-data/README.md`. Leave unknowns as `UNKNOWN`.
 
 ## CourtListener search
 
-The plugin starts the single-file CourtListener MCP at
+The plugin starts the CourtListener MCP at
 `.agents/plugins/legal/mcp/caselaw.ts`. Semantic search uses DI Framework's
 `S3VectorStore` with the private `courtlistener/modernbert-768` index in
-`us-west-2`. Configure AWS credentials and install `uv`, then prepare local query inference:
+`us-west-2`. Query inference uses `@di-framework/ml` from the sibling checkout
+`../../../di-framework-ml/packages/infer` (relative to this agent). Keep that checkout
+beside `example-agents` when running `bun install`.
+
+Install `uv`, then export and verify the local model once:
 
 ```sh
-# If using an AWS login profile, authenticate once with: aws login
+bun run embeddings:prepare
+# If using an AWS login profile, authenticate with: aws login
 bun .agents/plugins/legal/mcp/caselaw.ts --warmup
 ```
 
-The first warmup downloads the Free Law Project embeddings model (about 600 MB) and its
-Python inference runtime. Queries use the pinned model revision
-`04f0141fbc045122439d28d51ba670f3091e9ed8`, its `search_query:` prefix, mean
-pooling and normalization. Query text is embedded locally on CPU; only the vector
-goes to AWS. The AWS SDK uses its default credential chain (environment, shared profiles,
+Preparation downloads the Free Law Project model and a pinned Python export runtime,
+exports an unquantized ONNX graph (about 600 MB), and compares the TypeScript
+tokenizer, vectors, padding behavior, and fixture retrieval rankings with Python.
+The bundle and its checksum/verification records live in `.cache/courtlistener-onnx/`;
+they are generated locally and excluded from Git. Rerun `bun run embeddings:verify`
+to repeat the checks without exporting. Unverified or changed bundles are rejected.
+
+Queries use `freelawproject/modernbert-embed-base_finetune_512` at revision
+`04f0141fbc045122439d28d51ba670f3091e9ed8`, with the same tokenizer,
+`search_query: ` prefix, masked mean pooling, and L2 normalization. The pinned
+model's actual sequence limit is 8,192 tokens despite `_512` in its name.
+`@di-framework/ml` runs the graph on WASM CPU in a reusable Bun worker. Cancellation
+or the 60-second inference timeout terminates the worker; the next request reloads it.
+Python is used only for preparation, with no subprocess or download during a query.
+
+Query text stays local; only the vector goes to AWS. The AWS SDK uses its default credential chain (environment, shared profiles,
 login/SSO sessions, or workload roles). Search and object retrieval call the SDK
 directly; they do not launch the AWS CLI. No separately running embedding server
-is needed.
+is needed. This change preserves the existing vector space; it does not train a new
+model or reindex opinions. See [model provenance](scripts/EMBEDDINGS.md).
 
 `semantic_search_opinions` returns matching chunks and current import coverage.
 Use `get_opinion_chunk` with its opinion ID and chunk number for more text. Results

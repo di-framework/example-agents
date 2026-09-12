@@ -5,7 +5,7 @@ import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { S3VectorStore } from '@di-framework/ai';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { CourtListener, CourtListenerVectors, createCourtListenerServer, embedQuery, runJson, validate } from '../.agents/plugins/legal/mcp/caselaw.ts';
+import { CourtListener, CourtListenerVectors, createCourtListenerServer, embedQuery, validate } from '../.agents/plugins/legal/mcp/caselaw.ts';
 import { connectPluginMcp, loadLegalPlugin } from './agent.ts';
 
 const vector = Array.from({ length: 768 }, () => 0.01);
@@ -13,8 +13,8 @@ const metadata = { opinion_id: '100', chunk_number: 1, text: 'A published opinio
 const body = (text: string) => ({ transformToWebStream: () => new Blob([text]).stream() });
 function fixture() {
   const calls: { command: any; input: any; options?: any }[] = [];
-  const vectors = new CourtListenerVectors(async (command, input) => {
-    calls.push({ command, input });
+  const vectors = new CourtListenerVectors(async (text, signal) => {
+    calls.push({ command: 'embed', input: { text, signal } });
     return vector;
   }, { send: async (command: any, options: any) => {
     calls.push({ command, input: command.input, options });
@@ -37,10 +37,8 @@ test('DI S3VectorStore maps AWS distance, query vectors, metadata filtering and 
   expect(result.results[0].text).toBe(metadata.text);
   expect(result.import.complete).toBe(false);
   expect(result.note).toContain('incomplete');
-  const embedding = calls.find(c => c.command[0] === 'uv')!;
+  const embedding = calls.find(c => c.command === 'embed')!;
   expect(embedding.input.text).toBe('due process $(never-execute)');
-  expect(embedding.command.join(' ')).not.toContain('$(never-execute)');
-  expect(embedding.command.at(-1)).toContain("'search_query: ' + request['text']");
   const call = calls.find(c => c.command instanceof QueryVectorsCommand)!;
   const query = call.input;
   expect(call.options.abortSignal).toBeInstanceOf(AbortSignal);
@@ -82,12 +80,6 @@ test('oversized text is fetched only from its exact owned S3 key as text', async
   expect(fetched).toBe(true);
   const bad = new CourtListenerVectors(undefined, { send: async () => ({ vectors: [{ key: '100:1', metadata: { text_s3_key: '../../private' } }] }) } as any);
   await expect(bad.call('get_opinion_chunk', { opinion_id: 100, chunk_number: 1 })).rejects.toThrow('Unexpected chunk');
-});
-
-test('subprocess JSON stdin preserves literal query text and cancellation terminates it', async () => {
-  const input = { text: '$(secret) `literal` "quoted"' };
-  expect(await runJson([process.execPath, '-e', 'console.log(await Bun.stdin.text())'], input)).toEqual(input);
-  await expect(runJson([process.execPath, '-e', 'setInterval(() => {}, 1000)'], undefined, AbortSignal.timeout(50))).rejects.toThrow();
 });
 
 test('semantic search runs through the MCP protocol without a CourtListener API token', async () => {
