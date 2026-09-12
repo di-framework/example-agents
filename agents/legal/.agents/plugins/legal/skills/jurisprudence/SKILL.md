@@ -50,21 +50,11 @@ reconstructed premises as your interpretation, not the speaker's concessions.
 Fair representation does not require equal evidentiary weight or a compromise.
 Locate the disagreement in facts, definitions, inference, values or risk.
 
-For legal argument, also identify the theoretical lens each position rests
-on — analytical (the rule's structure and concepts as they are), historical
-(a doctrine's origin and development), sociological (the rule's practical
-effects in society), or philosophical (moral principle and what the law
-ought to be). Naming the lens exposes positions that are not answering the
-same question. Keep claims about what the law *is* separate from claims
-about what it *ought* to be, and legal obligation separate from moral
-obligation; flag any conclusion that silently crosses those lines. Consider taxonomy and its parallel
-to the `constitutional` skill's interpretive modalities.
-
 Trace the premises connecting evidence to the conclusion. Test consequential
 assumptions, contrary evidence and plausible alternatives; identify what would
 distinguish them. Separate fatal defects from repairable gaps and qualifications.
 Stop when further objections would not materially affect the result.
-
+º
 ## Judge, explain and revise
 
 Separate what is established, inferred and unknown. Explain confidence through
