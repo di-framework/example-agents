@@ -171,7 +171,7 @@ file or OBS recording to cited seconds. In events, `presentation: "live"` means 
 presentation vs replay — not “this is a livestream.”
 
 Limits: sparse sampling and no audio can miss plays; youth sideline footage is harder than
-broadcasts; identity and replay detection need review. Smoke notes for a finished MLB clip:
+broadcasts; identity and replay detection need review. Smoke notes for a finished Mets clip:
 [VIDEO_EVALUATION.md](VIDEO_EVALUATION.md).
 
 Vision defaults to `CodexVisionModel` (`codex exec --image`). Set `VISION_MODEL` to pin a
