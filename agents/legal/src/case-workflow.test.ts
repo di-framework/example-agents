@@ -72,7 +72,7 @@ test('the seven requested stages, follow-ups and reruns use the same chat agent'
     '/timeline',
   ]);
   expect(closed).toBe(1);
-  expect(ui.output.filter((line) => line === 'Agent: Stage response')).toHaveLength(9);
+  expect(ui.output.filter((line) => line === 'Stage response')).toHaveLength(9);
 });
 
 for (const outcome of ['missing input', 'provider failure', 'cancellation'] as const) {
@@ -107,7 +107,7 @@ for (const outcome of ['missing input', 'provider failure', 'cancellation'] as c
         ? 'Request cancelled.'
         : outcome === 'provider failure'
           ? 'Request failed: Provider unavailable'
-          : 'Agent: Which jurisdiction should I use?',
+          : 'Which jurisdiction should I use?',
     );
   });
 }
@@ -202,7 +202,7 @@ test('a new agent session can read a previous stage artifact through the real wo
     const first = await createLegalAgent(timelineModel, { workspace, mcp: false });
     const firstUi = terminal(['/timeline', '/exit']);
     await runInteractive({ ...first, clearHistory: () => {} }, firstUi.io);
-    expect(firstUi.output).toContain('Agent: Saved the provisional timeline.');
+    expect(firstUi.output).toContain('Saved the provisional timeline.');
     expect(timelineCalls).toBe(4);
     expect(await readFile(timelinePath, 'utf8')).toBe(timeline);
 
@@ -239,7 +239,7 @@ test('a new agent session can read a previous stage artifact through the real wo
     const second = await createLegalAgent(issuesModel, { workspace, mcp: false });
     const secondUi = terminal(['/issues', '/exit']);
     await runInteractive({ ...second, clearHistory: () => {} }, secondUi.io);
-    expect(secondUi.output).toContain('Agent: Saved provisional issues linked to timeline E1.');
+    expect(secondUi.output).toContain('Saved provisional issues linked to timeline E1.');
     expect(issueCalls).toBe(4);
     expect(await readFile(issuesPath, 'utf8')).toContain(
       'I1: What supports the reported meeting in E1?',

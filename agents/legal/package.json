@@ -26,6 +26,7 @@
     "@di-framework/core": "5.3.2",
     "@di-framework/ml": "file:../../../di-framework-ml/packages/infer",
     "@huggingface/tokenizers": "0.2.0",
-    "@modelcontextprotocol/sdk": "^1.30.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@di-framework/tui": "workspace:*"
   }
 }

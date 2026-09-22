@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "workspaces": [
-    "agents/*"
+    "agents/*",
+    "packages/*"
   ],
   "devDependencies": {
     "@types/bun": "latest"

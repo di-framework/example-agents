@@ -1,0 +1,3 @@
+[test]
+# Task worktrees carry their own test suites; run those from the target repo.
+pathIgnorePatterns = ["agents/ml-researcher/runs/**", "agents/ml-researcher/.cache/**"]

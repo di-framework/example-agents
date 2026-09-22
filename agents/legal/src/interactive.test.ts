@@ -110,7 +110,7 @@ test('cancellation and provider errors leave the loop usable', async () => {
   expect(prompts).toEqual(['cancel this', 'fail this', 'continue']);
   expect(ui.output).toContain('Request cancelled.');
   expect(ui.output).toContain('Request failed: provider unavailable');
-  expect(ui.output).toContain('Agent: continued');
+  expect(ui.output).toContain('continued');
 });
 
 test('real readline retains piped lines while responses are pending and exits on EOF', async () => {
