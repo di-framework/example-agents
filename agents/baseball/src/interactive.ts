@@ -3,7 +3,9 @@ import { createTerminal } from "@di-framework/tui";
 import { CHAT_HELP, runChat, type ChatTerminal } from "@di-framework/tui/core";
 import {
   createBaseballCommands,
+  createSpectatorCommands,
   type BaseballCommandSession,
+  type SpectatorCommandSession,
 } from "./commands.ts";
 
 export const HELP = `Tell me about your team, paste postgame stats, or ask for a season report.
@@ -11,7 +13,23 @@ export const HELP = `Tell me about your team, paste postgame stats, or ask for a
 /photo PATH  Read a scorebook photo with AI vision and review its draft
 ${CHAT_HELP}`;
 
+export const SPECTATOR_HELP = `I am an AI baseball spectator. I record what I see from game footage into a durable log.
+/record PATH  Record a full game file
+/video PATH   Quick sample (first two minutes)
+Ask about the current recording after /record. Season bookkeeping is not part of this spectator.
+${CHAT_HELP}`;
+
 export interface BaseballSession extends BaseballCommandSession {
+  agent: {
+    chat(
+      message: string,
+      options?: ChatAgentRunOptions,
+    ): Promise<{ content: string }>;
+  };
+  clearHistory(): void;
+}
+
+export interface SpectatorSession extends SpectatorCommandSession {
   agent: {
     chat(
       message: string,
@@ -29,7 +47,6 @@ export async function runInteractive(
     {
       chat: (message, settings) => session.agent.chat(message, settings),
       clearHistory: () => session.clearHistory(),
-      // The CLI owns the database and closes it in its existing finally block.
     },
     terminal,
     {
@@ -39,6 +56,26 @@ export async function runInteractive(
       cancelledMessage:
         "Cancelled. Check saved records before repeating an entry.",
       commands: [...createBaseballCommands(session)],
+    },
+  );
+}
+
+export async function runSpectatorInteractive(
+  session: SpectatorSession,
+  terminal: ChatTerminal = createTerminal(),
+) {
+  await runChat(
+    {
+      chat: (message, settings) => session.agent.chat(message, settings),
+      clearHistory: () => session.clearHistory(),
+    },
+    terminal,
+    {
+      title: "Baseball spectator",
+      help: SPECTATOR_HELP,
+      clearMessage: "Chat cleared; current game log remains until /record again.",
+      cancelledMessage: "Cancelled. Partial recordings may be incomplete.",
+      commands: [...createSpectatorCommands(session)],
     },
   );
 }

@@ -1,9 +1,15 @@
 import type { ChatCommand } from "@di-framework/tui/core";
+import type { GameLog } from "./game-log.ts";
+import { formatRecordingSummary } from "./review.ts";
 import type { VideoOptions } from "./video.ts";
 
-export interface BaseballCommandSession {
-  readPhoto(path: string, signal?: AbortSignal): Promise<unknown>;
-  watchVideo?(path: string, options?: VideoOptions): Promise<unknown>;
+export interface SpectatorCommandSession {
+  record(
+    path: string,
+    options?: VideoOptions & { enhance?: boolean },
+  ): Promise<GameLog>;
+  /** Optional short sample (defaults to first 2 minutes via duration override). */
+  sample?(path: string, options?: VideoOptions): Promise<GameLog>;
 }
 
 function mediaPath(args: string, command: string): string {
@@ -12,16 +18,92 @@ function mediaPath(args: string, command: string): string {
   return path;
 }
 
-/** Media commands depend only on the injected photo/video capabilities. */
-export function createBaseballCommands(
-  session: BaseballCommandSession,
+function clock(seconds: number): string {
+  const total = Math.floor(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** Spectator commands: record footage into a durable game log. */
+export function createSpectatorCommands(
+  session: SpectatorCommandSession,
 ): ChatCommand[] {
+  return [
+    {
+      name: "/record",
+      description: "Record a full game file into a durable game log",
+      arguments: "PATH",
+      async run(args, context) {
+        const path = mediaPath(args, "/record");
+        context.setStatus("Recording game footage…");
+        const log = await session.record(path, {
+          duration: "all",
+          signal: context.signal,
+          onProgress: (draft) =>
+            context.setStatus(
+              `Recorded through ${clock(draft.coverage.analyzedThrough)} / ${clock(draft.coverage.requestedEnd)}`,
+            ),
+        });
+        context.signal.throwIfAborted();
+        context.write(formatRecordingSummary(log));
+        context.write(
+          "Game log recorded in memory for this session. Ask questions about it, or use --output / enhance from the CLI to persist layers.",
+        );
+      },
+    },
+    {
+      name: "/video",
+      description: "Quick sample: record the first two minutes",
+      arguments: "PATH",
+      async run(args, context) {
+        const path = mediaPath(args, "/video");
+        const run = session.sample ?? session.record;
+        context.setStatus("Recording sample (first 2 minutes)…");
+        const log = await run(path, {
+          duration: 120,
+          signal: context.signal,
+          onProgress: (draft) =>
+            context.setStatus(
+              `Recorded through ${clock(draft.coverage.analyzedThrough)} / ${clock(draft.coverage.requestedEnd)}`,
+            ),
+        });
+        context.signal.throwIfAborted();
+        context.write(formatRecordingSummary(log));
+        context.write(
+          "Sample only. Use /record PATH for the full file.",
+        );
+      },
+    },
+  ];
+}
+
+/** @deprecated Prefer createSpectatorCommands for the spectator path. */
+export function createBaseballCommands(
+  session: {
+    readPhoto?(path: string, signal?: AbortSignal): Promise<unknown>;
+    watchVideo?(path: string, options?: VideoOptions): Promise<unknown>;
+    record?(
+      path: string,
+      options?: VideoOptions & { enhance?: boolean },
+    ): Promise<GameLog>;
+  },
+): ChatCommand[] {
+  if (session.record) {
+    return createSpectatorCommands({
+      record: session.record.bind(session),
+      sample: session.record.bind(session),
+    });
+  }
+  // Legacy stats-agent media commands (photo + raw JSON video).
   return [
     {
       name: "/photo",
       description: "Read a scorebook photo and review its draft",
       arguments: "PATH",
       async run(args, context) {
+        if (!session.readPhoto)
+          throw new Error("Photo reading is unavailable in this session");
         const path = mediaPath(args, "/photo");
         context.setStatus("Reading scorebook image…");
         const draft = await session.readPhoto(path, context.signal);
@@ -57,3 +139,8 @@ export function createBaseballCommands(
     },
   ];
 }
+
+export type BaseballCommandSession = {
+  readPhoto(path: string, signal?: AbortSignal): Promise<unknown>;
+  watchVideo?(path: string, options?: VideoOptions): Promise<unknown>;
+};

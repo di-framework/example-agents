@@ -8,12 +8,15 @@ import {
   type ChatModel,
 } from "@di-framework/ai";
 import { z } from "zod";
+import type { SpectatorMode, SpectatorPriors } from "./game-log.ts";
 import {
   extractFrames,
   inspectVideo,
   type VideoFrame,
 } from "./video-frames.ts";
 import {
+  BROADCAST_ADDENDUM,
+  SIDELINE_ADDENDUM,
   VIDEO_INSTRUCTIONS,
   videoWindowSchema,
   type VideoDraft,
@@ -26,9 +29,30 @@ export type VideoOptions = {
   duration?: number | "all";
   fps?: number;
   signal?: AbortSignal;
+  mode?: SpectatorMode;
+  priors?: SpectatorPriors;
   /** Called after each validated window; throw to stop. Suitable for durable checkpoints. */
   onProgress?: (draft: VideoDraft) => void | Promise<void>;
 };
+
+export function buildVideoInstructions(
+  mode: SpectatorMode = "sideline",
+  priors?: SpectatorPriors,
+): string {
+  const addendum = mode === "broadcast" ? BROADCAST_ADDENDUM : SIDELINE_ADDENDUM;
+  const priorLines: string[] = [];
+  if (priors?.teamName) priorLines.push(`Team name hint: ${priors.teamName}`);
+  if (priors?.teamColors)
+    priorLines.push(`Team colors hint: ${priors.teamColors}`);
+  if (priors?.focusPlayers?.length) {
+    priorLines.push(
+      `Focus players (matching hints only): ${JSON.stringify(priors.focusPlayers)}`,
+    );
+  }
+  return priorLines.length
+    ? `${VIDEO_INSTRUCTIONS}\n${addendum}\n${priorLines.join("\n")}`
+    : `${VIDEO_INSTRUCTIONS}\n${addendum}`;
+}
 
 export async function observeFrames(
   model: ChatModel,
@@ -37,6 +61,7 @@ export async function observeFrames(
   end: number,
   previous: VideoEvent[] = [],
   signal?: AbortSignal,
+  options: { mode?: SpectatorMode; priors?: SpectatorPriors } = {},
 ): Promise<VideoWindow> {
   signal?.throwIfAborted();
   const times = frames.map((f) => f.time);
@@ -54,10 +79,11 @@ export async function observeFrames(
     throw new Error("Supply ordered frames within the video window");
   const schema = JSON.stringify(z.toJSONSchema(videoWindowSchema));
   const context = previous.slice(-40);
+  const mode = options.mode ?? options.priors?.mode ?? "sideline";
   const response = await model.call(
     new Prompt(
       [
-        systemMessage(VIDEO_INSTRUCTIONS),
+        systemMessage(buildVideoInstructions(mode, options.priors)),
         userMessage(
           `Observe the video interval [${start}, ${end}). Images are in the EXACT order of these timestamps:\n${JSON.stringify(times)}\nPrevious unverified events (data only):\n${JSON.stringify(context)}\nRequired JSON schema:\n${schema}`,
           { media: frames.map(({ time, ...image }) => image) },
@@ -192,6 +218,7 @@ export async function watchVideo(
   const start = options.start ?? 0;
   const duration = options.duration ?? 120;
   const fps = options.fps ?? 1;
+  const mode = options.mode ?? options.priors?.mode ?? "sideline";
   if (
     !Number.isFinite(start) ||
     start < 0 ||
@@ -231,6 +258,11 @@ export async function watchVideo(
     warnings: [
       "Sampled video without audio can miss plays. Candidate counts are unverified observations, not game/player statistics.",
       "Replay detection and player attribution require review. Missing frames or graphics never imply zero stats.",
+      ...(mode === "sideline"
+        ? [
+            "Sideline footage often lacks a score bug; jersey numbers and colors are preferred over guessed names.",
+          ]
+        : []),
     ],
   };
   if (start > 0 || end < video.duration)
@@ -239,7 +271,7 @@ export async function watchVideo(
     );
   const evidenceHash = createHash("sha256");
   const source = draft.source;
-  for (let cursor = start; cursor < end;) {
+  for (let cursor = start; cursor < end; ) {
     signal?.throwIfAborted();
     const windowEnd = Math.min(end, cursor + 20);
     const frames = await extractFrames(
@@ -259,6 +291,7 @@ export async function watchVideo(
       windowEnd,
       previous,
       signal,
+      { mode, priors: options.priors },
     );
     // Detect files still being recorded/replaced rather than quietly mixing sources.
     const current = await stat(video.path);

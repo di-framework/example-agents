@@ -86,6 +86,11 @@ const inference = (result: unknown) =>
 
 test("video sends ordered images and timestamps, no tools, and bounded prior context", async () => {
   const model = new FakeChatModel((prompt) => {
+    const system = prompt.messages.find(
+      (message) => message.messageType === "system",
+    )!;
+    expect(system.text).toContain("Sideline / parent-cam mode");
+    expect(system.text).toContain("blue");
     const user = prompt.messages.find(
       (message) => message.messageType === "user",
     )!;
@@ -106,6 +111,9 @@ test("video sends ordered images and timestamps, no tools, and bounded prior con
     [frame(0), frame(1), frame(2)],
     0,
     3,
+    [],
+    undefined,
+    { mode: "sideline", priors: { teamColors: "blue" } },
   );
   expect(result.model).toBe("test-vision");
   expect(result.events[0]?.reviewRequired).toBe(true);

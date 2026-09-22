@@ -1,34 +1,83 @@
-# Baseball stats agent
+# Baseball spectator
 
-> STATUS: In Progress, Unverified
+> STATUS: Prototype
 
-A di-framework agent that watches recorded baseball footage with AI vision and produces
-a timestamped draft of plays and scoreboard observations. Use any game broadcasts/clips to
-try the video workflow, or use historically recorded game footable. Review what it observed, then
-enter confirmed game stats into the team/season tracker. Scorebook photos and manual
-entry are also supported. Stats persist in SQLite; tools calculate season totals and rates.
+An AI baseball spectator that does one job: **record what it sees** from game footage into a
+durable game log. Sideline / parent-cam footage is the default mode. Later models plug in as
+**enhancers** that append layers on the same log without rewriting the observer pass.
 
-## Run
+Season bookkeeping (SQLite roster/stats) still exists as a legacy `--stats` path; it is not
+part of the spectator.
 
-From this repository, run `bun install`, then:
+## Create a spectator
+
+From this repository, run `bun install`, install [FFmpeg](https://ffmpeg.org/download.html)
+(`ffmpeg` and `ffprobe` on PATH), and sign in to Codex. Then:
 
 ```sh
 cd agents/baseball
-bun start
+bun start --record /path/to/game.mp4 --output game.json
 ```
 
-Chat and vision use your existing Codex sign-in. You can also supply DI Framework
-`ChatModel` instances for chat and vision to `createBaseballAgent`. The default database is
-`agents/baseball/data/baseball.sqlite`, independent of the current directory. Use
-`bun start --data /path/to/stats.sqlite` for another database.
+That analyzes the **full file** by default (sideline mode), checkpoints `game.json` after each
+window, prints a human recording summary on stdout, and writes the durable log to `--output`.
+Progress goes to stderr.
 
-Try a synthetic game without signing in or writing team data:
+In the interactive spectator (`bun start`):
+
+```text
+/record /path/to/game.mp4
+What did you catch in the first inning?
+```
+
+Quick two-minute sample: `/video PATH` or `bun start --video PATH`.
+
+### Enhance the same log later
 
 ```sh
-bun run demo
+bun start --enhance game.json --with summary --output game.json
 ```
 
-## Watch a recorded game
+Programmatically:
+
+```ts
+import {
+  createBaseballSpectator,
+  enhancer,
+  formatRecordingSummary,
+  summaryLayer,
+} from "./src/index.ts";
+
+const spectator = createBaseballSpectator({
+  chatModel,
+  visionModel,
+  priors: { teamName: "Owls", teamColors: "navy/white", focusPlayers: [{ number: "7", name: "Emma" }] },
+  enhancers: [summaryLayer(chatModel)],
+});
+const log = await spectator.record("/path/to/game.mp4", { enhance: true });
+console.log(formatRecordingSummary(log));
+
+// Add another model anytime:
+await spectator.enhance([
+  enhancer({
+    id: "identity",
+    model: anotherModel,
+    instructions: "Resolve jersey numbers to names from priors only; never invent players.",
+  }),
+]);
+```
+
+The game log keeps raw observer `windows` / `events` and an `enhancements[]` list. New models
+append; they do not replace the recording.
+
+## Legacy season tracker
+
+`bun start --stats` opens the older team/season SQLite chat (roster, `save_game`, reports).
+`bun run demo` still exercises that synthetic scorebook path without vision.
+
+---
+
+## Watch a recorded game (observer details)
 
 Install [FFmpeg](https://ffmpeg.org/download.html), including `ffmpeg` and `ffprobe`
 on PATH (`brew install ffmpeg` on macOS). In chat:

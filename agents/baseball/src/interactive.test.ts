@@ -1,13 +1,38 @@
 import { expect, test } from "bun:test";
 import { createTerminalModel } from "@di-framework/tui/core";
-import { runInteractive, type BaseballSession } from "./interactive.ts";
+import { draftToGameLog } from "./game-log.ts";
+import {
+  runInteractive,
+  runSpectatorInteractive,
+  type BaseballSession,
+  type SpectatorSession,
+} from "./interactive.ts";
+import type { VideoDraft } from "./video-schema.ts";
 
-test("shared chat routes media commands with quoted paths, progress, and draft notices", async () => {
+function sampleLog(): ReturnType<typeof draftToGameLog> {
+  const draft: VideoDraft = {
+    source: "Video clip.mp4",
+    reviewRequired: true,
+    status: "complete",
+    coverage: {
+      start: 0,
+      requestedEnd: 120,
+      analyzedThrough: 30,
+      videoDuration: 120,
+      fps: 1,
+    },
+    windows: [],
+    candidateCounts: {},
+    warnings: ["Sample warning"],
+  };
+  return draftToGameLog(draft, { mode: "sideline" });
+}
+
+test("spectator routes /record with progress and recording summary", async () => {
   const model = createTerminalModel();
   const calls: string[] = [];
   let cleared = 0;
-  let mediaSignal: AbortSignal | undefined;
-  const session: BaseballSession = {
+  const session: SpectatorSession = {
     agent: {
       async chat(message) {
         calls.push(message);
@@ -17,20 +42,12 @@ test("shared chat routes media commands with quoted paths, progress, and draft n
     clearHistory() {
       cleared++;
     },
-    async readPhoto(path, signal) {
-      calls.push(`photo:${path}`);
-      mediaSignal = signal;
-      return { draft: "photo" };
-    },
-    async watchVideo(path, options) {
-      calls.push(`video:${path}`);
-      // The UI only consumes coverage from the progress object.
+    async record(path, options) {
+      calls.push(`record:${path}`);
       await options?.onProgress?.({
         coverage: { analyzedThrough: 30, requestedEnd: 120 },
-      } as Parameters<
-        NonNullable<NonNullable<typeof options>["onProgress"]>
-      >[0]);
-      return { draft: "video" };
+      } as Parameters<NonNullable<NonNullable<typeof options>["onProgress"]>>[0]);
+      return sampleLog();
     },
   };
   const statuses: (string | null)[] = [];
@@ -38,57 +55,74 @@ test("shared chat routes media commands with quoted paths, progress, and draft n
     statuses.push(model.getSnapshot().status);
   });
   for (const line of [
-    '/photo "score book.jpg"',
-    "/video 'game clip.mp4'",
-    "/photo",
-    '/photo ""',
+    '/record "game clip.mp4"',
+    "/video sample.mp4",
+    "/record",
     "/clear",
-    "/paste",
-    "first",
-    "second",
-    "/send",
     "/exit",
   ])
     model.submit(line);
-  await runInteractive(session, model.terminal);
-  expect(calls).toEqual([
-    "photo:score book.jpg",
-    "video:game clip.mp4",
-    "first\nsecond",
-  ]);
-  expect(mediaSignal).toBeInstanceOf(AbortSignal);
+  await runSpectatorInteractive(session, model.terminal);
+  expect(calls).toEqual(["record:game clip.mp4", "record:sample.mp4"]);
   expect(cleared).toBe(1);
-  expect(statuses).toContain("Analyzed through 30.0s / 120.0s");
+  expect(statuses.some((s) => s?.includes("Recorded through"))).toBe(true);
+  const text = model
+    .getSnapshot()
+    .messages.map((entry) => entry.content)
+    .join("\n");
+  expect(text).toContain("Game recording");
+  expect(text).toContain("not official statistics");
+  expect(text).toContain("Usage: /record PATH");
+  expect(text).toContain("Sample only");
+});
+
+test("legacy stats session still routes /photo and /video JSON drafts", async () => {
+  const model = createTerminalModel();
+  const calls: string[] = [];
+  const session: BaseballSession = {
+    agent: {
+      async chat(message) {
+        calls.push(message);
+        return { content: "reply" };
+      },
+    },
+    clearHistory() {},
+    async readPhoto(path, signal) {
+      calls.push(`photo:${path}`);
+      expect(signal).toBeInstanceOf(AbortSignal);
+      return { draft: "photo" };
+    },
+    async watchVideo(path, options) {
+      calls.push(`video:${path}`);
+      await options?.onProgress?.({
+        coverage: { analyzedThrough: 30, requestedEnd: 120 },
+      } as Parameters<NonNullable<NonNullable<typeof options>["onProgress"]>>[0]);
+      return { draft: "video" };
+    },
+  };
+  for (const line of ['/photo "score book.jpg"', "/video 'game clip.mp4'", "/exit"])
+    model.submit(line);
+  await runInteractive(session, model.terminal);
+  expect(calls).toEqual(["photo:score book.jpg", "video:game clip.mp4"]);
   const text = model
     .getSnapshot()
     .messages.map((entry) => entry.content)
     .join("\n");
   expect(text).toContain("Draft only; no stats saved.");
   expect(text).toContain("Draft plays only; no stats saved.");
-  expect(text).toContain("Usage: /photo PATH");
 });
 
-test("cancelled media results are suppressed and the next chat turn still runs", async () => {
+test("cancelled spectator record suppresses partial output", async () => {
   const model = createTerminalModel();
-  for (const line of [
-    "/photo image.jpg",
-    "/video game.mp4",
-    "continue",
-    "/exit",
-  ])
-    model.submit(line);
-  await runInteractive(
+  for (const line of ["/record game.mp4", "continue", "/exit"]) model.submit(line);
+  await runSpectatorInteractive(
     {
-      agent: {
-        async chat() {
-          return { content: "continued" };
-        },
-      },
+      agent: { async chat() { return { content: "continued" }; } },
       clearHistory() {},
-      async readPhoto(_, signal) {
+      async record(_, options) {
         model.interrupt();
-        expect(signal?.aborted).toBe(true);
-        return { cancelledResult: true };
+        expect(options?.signal?.aborted).toBe(true);
+        return sampleLog();
       },
     },
     model.terminal,
@@ -97,10 +131,7 @@ test("cancelled media results are suppressed and the next chat turn still runs",
     .getSnapshot()
     .messages.map((entry) => entry.content)
     .join("\n");
-  expect(text).toContain(
-    "Cancelled. Check saved records before repeating an entry.",
-  );
-  expect(text).not.toContain("cancelledResult");
-  expect(text).toContain("Video analysis is unavailable");
+  expect(text).toContain("Cancelled");
+  expect(text).not.toContain("Game recording (complete)");
   expect(text).toContain("continued");
 });

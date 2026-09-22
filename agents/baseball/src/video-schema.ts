@@ -116,4 +116,14 @@ If overlap reveals a better outcome, describe the correction and link the prior 
 If a play might be a repeat but you cannot link it, use presentation uncertain and explain why.
 Confidence is only your qualitative assessment, not a calibrated probability. Flag missing decisive frames, occlusions,
 unreadable graphics, uncertain identities, ambiguous outcomes, replays, and gaps in warnings/uncertainty.
-Keep observations modest: visible events are a draft for scorer review, not official statistics.`;
+Keep observations modest: visible events are recorded spectator data, not official statistics.`;
+
+export const SIDELINE_ADDENDUM = `Sideline / parent-cam mode:
+Expect shaky handheld video, no broadcast score bug, and few or no name graphics.
+Prefer jersey numbers and team colors over guessed names. If a prior lists colors or focus players, use them only as matching hints.
+When no scoreboard is readable, leave scoreboard fields null rather than inventing innings or runs.
+Flag occlusions, distance shots, and missed action in warnings. Sampling without audio will miss pitches and calls.`;
+
+export const BROADCAST_ADDENDUM = `Broadcast mode:
+Score bugs, lower thirds, and replay graphics may be present. Prefer readable live scoreboard text when clearly visible.
+Still treat graphics as observations, not official final stats.`;
