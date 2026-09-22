@@ -88,8 +88,10 @@ test uses an official MLB highlight; see [video evaluation](VIDEO_EVALUATION.md)
 Programmatic use accepts the same injected vision `ChatModel` as photos:
 
 ```ts
-const draft = await baseball.watchVideo('/path/to/game.mp4', {
-  start: 300, duration: 120, fps: 1,
+const draft = await baseball.watchVideo("/path/to/game.mp4", {
+  start: 300,
+  duration: 120,
+  fps: 1,
   onProgress: (draft) => console.log(draft.coverage.analyzedThrough),
 });
 ```
@@ -137,14 +139,17 @@ step while DI Framework handles the chat and stats tools.
 You can instead inject an image-capable API model (including a compatible local endpoint):
 
 ```ts
-import { OpenAiChatModel } from '@di-framework/ai';
-import { createBaseballAgent } from './src/agent.ts';
+import { OpenAiChatModel } from "@di-framework/ai";
+import { createBaseballAgent } from "./src/agent.ts";
 
 const baseball = createBaseballAgent(chatModel, {
-  visionModel: new OpenAiChatModel({ model: 'your-vision-model', apiKey: process.env.OPENAI_API_KEY }),
+  visionModel: new OpenAiChatModel({
+    model: "your-vision-model",
+    apiKey: process.env.OPENAI_API_KEY,
+  }),
 });
 try {
-  console.log(await baseball.readPhoto('/path/to/scorebook.jpg'));
+  console.log(await baseball.readPhoto("/path/to/scorebook.jpg"));
 } finally {
   baseball.close();
 }
@@ -229,11 +234,13 @@ Live streaming, spreadsheet imports, and GameChanger synchronization are not imp
 ## Use in code
 
 ```ts
-import { createBaseballAgent } from './src/agent.ts';
+import { createBaseballAgent } from "./src/agent.ts";
 
-const baseball = createBaseballAgent(chatModel, { databasePath: './team.sqlite' });
+const baseball = createBaseballAgent(chatModel, {
+  databasePath: "./team.sqlite",
+});
 try {
-  console.log((await baseball.agent.chat('Show the saved teams')).content);
+  console.log((await baseball.agent.chat("Show the saved teams")).content);
 } finally {
   baseball.close();
 }

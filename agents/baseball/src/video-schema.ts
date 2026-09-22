@@ -1,52 +1,95 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 const label = z.string().min(1).max(160).nullable();
 const count = z.number().int().min(0).max(100).nullable();
 const time = z.number().finite().nonnegative();
 export const scoreboardSchema = z.strictObject({
-  awayTeam: label, homeTeam: label, awayRuns: count, homeRuns: count,
-  inning: z.number().int().min(1).max(50).nullable(), half: z.enum(['top', 'bottom']).nullable(),
+  awayTeam: label,
+  homeTeam: label,
+  awayRuns: count,
+  homeRuns: count,
+  inning: z.number().int().min(1).max(50).nullable(),
+  half: z.enum(["top", "bottom"]).nullable(),
   outs: z.number().int().min(0).max(3).nullable(),
-  balls: z.number().int().min(0).max(4).nullable(), strikes: z.number().int().min(0).max(3).nullable(),
-  first: z.boolean().nullable(), second: z.boolean().nullable(), third: z.boolean().nullable(),
+  balls: z.number().int().min(0).max(4).nullable(),
+  strikes: z.number().int().min(0).max(3).nullable(),
+  first: z.boolean().nullable(),
+  second: z.boolean().nullable(),
+  third: z.boolean().nullable(),
 });
-export const playKinds = ['pitch', 'single', 'double', 'triple', 'home_run', 'walk', 'hit_by_pitch',
-  'strikeout', 'out', 'fielders_choice', 'reached_on_error', 'sacrifice', 'stolen_base',
-  'caught_stealing', 'run', 'unknown'] as const;
+export const playKinds = [
+  "pitch",
+  "single",
+  "double",
+  "triple",
+  "home_run",
+  "walk",
+  "hit_by_pitch",
+  "strikeout",
+  "out",
+  "fielders_choice",
+  "reached_on_error",
+  "sacrifice",
+  "stolen_base",
+  "caught_stealing",
+  "run",
+  "unknown",
+] as const;
 
 /** Observations of a broadcast, never an authoritative scorebook. */
 export const videoWindowSchema = z.strictObject({
   scoreboard: scoreboardSchema.nullable(),
   scoreboardFrame: time.nullable(),
-  broadcast: z.enum(['live', 'replay', 'mixed', 'commercial', 'unknown']),
-  events: z.array(z.strictObject({
-    start: time, end: time,
-    kind: z.enum(playKinds),
-    presentation: z.enum(['live', 'replay', 'uncertain']),
-    batter: label, pitcher: label, team: label,
-    inning: z.number().int().min(1).max(50).nullable(), half: z.enum(['top', 'bottom']).nullable(),
-    runsScored: z.number().int().min(0).max(4).nullable(),
-    confidence: z.enum(['high', 'medium', 'low']),
-    evidenceFrames: z.array(time).min(1).max(12),
-    evidence: z.string().min(1).max(1000),
-    uncertainty: z.string().min(1).max(1000).nullable(),
-    // References are restricted to prior IDs actually supplied to the model.
-    duplicateOf: z.string().max(80).nullable(),
-  })).max(20),
+  broadcast: z.enum(["live", "replay", "mixed", "commercial", "unknown"]),
+  events: z
+    .array(
+      z.strictObject({
+        start: time,
+        end: time,
+        kind: z.enum(playKinds),
+        presentation: z.enum(["live", "replay", "uncertain"]),
+        batter: label,
+        pitcher: label,
+        team: label,
+        inning: z.number().int().min(1).max(50).nullable(),
+        half: z.enum(["top", "bottom"]).nullable(),
+        runsScored: z.number().int().min(0).max(4).nullable(),
+        confidence: z.enum(["high", "medium", "low"]),
+        evidenceFrames: z.array(time).min(1).max(12),
+        evidence: z.string().min(1).max(1000),
+        uncertainty: z.string().min(1).max(1000).nullable(),
+        // References are restricted to prior IDs actually supplied to the model.
+        duplicateOf: z.string().max(80).nullable(),
+      }),
+    )
+    .max(20),
   warnings: z.array(z.string().min(1).max(1000)).max(20),
 });
 export type VideoObservation = z.infer<typeof videoWindowSchema>;
-export type VideoEvent = VideoObservation['events'][number] & { id: string; reviewRequired: true };
-export type VideoWindow = Omit<VideoObservation, 'events'> & {
-  start: number; end: number; frames: number[]; model: string; events: VideoEvent[];
+export type VideoEvent = VideoObservation["events"][number] & {
+  id: string;
+  reviewRequired: true;
+};
+export type VideoWindow = Omit<VideoObservation, "events"> & {
+  start: number;
+  end: number;
+  frames: number[];
+  model: string;
+  events: VideoEvent[];
 };
 export type VideoDraft = {
   source: string;
   reviewRequired: true;
-  status: 'in_progress' | 'complete';
-  coverage: { start: number; requestedEnd: number; analyzedThrough: number; videoDuration: number; fps: number };
+  status: "in_progress" | "complete";
+  coverage: {
+    start: number;
+    requestedEnd: number;
+    analyzedThrough: number;
+    videoDuration: number;
+    fps: number;
+  };
   windows: VideoWindow[];
-  candidateCounts: Partial<Record<typeof playKinds[number], number>>;
+  candidateCounts: Partial<Record<(typeof playKinds)[number], number>>;
   warnings: string[];
 };
 

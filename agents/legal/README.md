@@ -73,14 +73,14 @@ Ask ordinary questions between stages. Outputs land under
 ## Use in code
 
 ```ts
-import { createChatModel } from '@di-framework/ai';
-import { createLegalAgent } from './src/agent.ts';
+import { createChatModel } from "@di-framework/ai";
+import { createLegalAgent } from "./src/agent.ts";
 
 const legal = await createLegalAgent(
-  createChatModel({ provider: 'openai', auth: 'subscription' }),
+  createChatModel({ provider: "openai", auth: "subscription" }),
 );
 try {
-  console.log((await legal.agent.chat('/intake')).content);
+  console.log((await legal.agent.chat("/intake")).content);
 } finally {
   await legal.close();
 }

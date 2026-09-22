@@ -6,14 +6,14 @@ practice catalog.
 
 ## Skills
 
-| Skill | Purpose |
-| --- | --- |
-| [jurisprudence](skills/jurisprudence/SKILL.md) | Reasoning and judgment: understand the need, examine evidence and arguments, calibrate conclusions, and revise them |
-| [general](skills/general/SKILL.md) | Applied case work, legal research, verification, drafting, and selective use of practice catalog guidance |
-| [state](skills/state/SKILL.md) | State reference corpus intake, official source discovery, acquisition, provenance, and coverage |
-| [constitutional](skills/constitutional/SKILL.md) | US constitutional supremacy analysis: hierarchy of authority, preemption, judicial review, and rights scrutiny applied to a given issue |
-| [civil-procedure](skills/civil-procedure/SKILL.md) | US civil litigation procedure: forum and jurisdiction, pleadings, motions, discovery, deadlines, judgment, appeal, and preclusion |
-| [case-read](skills/case-read/SKILL.md) | Close reading of judicial opinions: purpose, caption and posture, curated facts, reconstructed arguments, rule extraction, and the limits of the holding |
+| Skill                                                  | Purpose                                                                                                                                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [jurisprudence](skills/jurisprudence/SKILL.md)         | Reasoning and judgment: understand the need, examine evidence and arguments, calibrate conclusions, and revise them                                                                         |
+| [general](skills/general/SKILL.md)                     | Applied case work, legal research, verification, drafting, and selective use of practice catalog guidance                                                                                   |
+| [state](skills/state/SKILL.md)                         | State reference corpus intake, official source discovery, acquisition, provenance, and coverage                                                                                             |
+| [constitutional](skills/constitutional/SKILL.md)       | US constitutional supremacy analysis: hierarchy of authority, preemption, judicial review, and rights scrutiny applied to a given issue                                                     |
+| [civil-procedure](skills/civil-procedure/SKILL.md)     | US civil litigation procedure: forum and jurisdiction, pleadings, motions, discovery, deadlines, judgment, appeal, and preclusion                                                           |
+| [case-read](skills/case-read/SKILL.md)                 | Close reading of judicial opinions: purpose, caption and posture, curated facts, reconstructed arguments, rule extraction, and the limits of the holding                                    |
 | [case-law-research](skills/case-law-research/SKILL.md) | Finding and qualifying judicial authority: search planning, the CourtListener tools and their coverage limits, multi-modal sweeps, binding-versus-persuasive ranking, and search provenance |
 
 Activate the relevant skill by its name through the agent's `Skill` tool.

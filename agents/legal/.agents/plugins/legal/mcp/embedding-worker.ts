@@ -1,4 +1,4 @@
-import { CourtListenerEmbedder } from './embeddings.ts';
+import { CourtListenerEmbedder } from "./embeddings.ts";
 declare const self: Worker;
 
 let embedder: Promise<CourtListenerEmbedder> | undefined;
@@ -8,6 +8,8 @@ self.onmessage = async (event: MessageEvent<{ text: string }>) => {
     const vector = await (await embedder).embed(event.data.text);
     self.postMessage({ vector });
   } catch (error) {
-    self.postMessage({ error: error instanceof Error ? error.message : String(error) });
+    self.postMessage({
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 };

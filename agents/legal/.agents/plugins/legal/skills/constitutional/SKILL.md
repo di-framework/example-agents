@@ -30,8 +30,8 @@ discipline and `general` for research, citation and verification methods.
 Order the candidate authorities before weighing any of them:
 
 1. The U.S. Constitution, as authoritatively construed by the Supreme Court
-   (judicial review per *Marbury v. Madison* — a role confirmed by the Court,
-   not spelled out in the text; binding effect per *Cooper v. Aaron*).
+   (judicial review per _Marbury v. Madison_ — a role confirmed by the Court,
+   not spelled out in the text; binding effect per _Cooper v. Aaron_).
 2. Federal statutes and ratified treaties made pursuant to the Constitution.
    An unconstitutional statute controls nothing.
 3. Valid federal regulations and executive action — only within authority
@@ -41,11 +41,11 @@ Order the candidate authorities before weighing any of them:
    Rules of Civil Procedure to the Supreme Court).
 4. Federal common law — judge-made law with no enacted text behind it.
    Limited to recognized enclaves (admiralty is the classic example) after
-   the *Erie* line; never assume a general federal common law exists, and
+   the _Erie_ line; never assume a general federal common law exists, and
    treat it as displaced by any on-point federal statute or valid regulation.
 5. State constitutions, then state statutes, then state regulations, then
    state common law, then local law, each subject to every level above it —
-   and a state constitution may grant *more* individual protection than the
+   and a state constitution may grant _more_ individual protection than the
    federal floor, never less. Local governments are units of the state:
    their power exists only by delegation from state law, so an ordinance
    ranks below the state authority that authorized it.

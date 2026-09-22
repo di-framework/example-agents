@@ -14,8 +14,8 @@ license: UNLICENSED
 Extract from a judicial opinion what it actually decides, on what reasoning,
 and within what limits — the close-reading method of professional case
 analysis. Method distilled in part from "How to Read a Case," Anne Coughlin,
-University of Virginia School of Law (2015), whose worked example, *People v.
-Bowen* (Mich. Ct. App. 1968), illustrates several steps below. Use
+University of Virginia School of Law (2015), whose worked example, _People v.
+Bowen_ (Mich. Ct. App. 1968), illustrates several steps below. Use
 `jurisprudence` for reasoning discipline and `general` for research, citation
 and verification methods; treat every proposition extracted here as still
 requiring verification for currency and treatment.
@@ -68,7 +68,7 @@ what the court rejects — a sentence like "there was sufficient evidence to
 support the conviction" exists because a party argued the opposite. Count the
 distinct claims and track each to its disposition; a reader drawn to the
 interesting issue routinely misses that another claim was decided first
-(*Bowen* resolves a sufficiency claim against the defendants before reaching
+(_Bowen_ resolves a sufficiency claim against the defendants before reaching
 the instruction error they win on).
 
 Reconstruct losing arguments in their strongest non-frivolous form — appellate
@@ -87,7 +87,7 @@ only as "it has been suggested."
   it cut short) is the holding's subject matter.
 - **Anchor precedent.** Identify the binding authority the court applies and
   state its test in general terms, together with any application heuristic
-  the court supplies (*Bowen*: conduct must "speak for itself" —
+  the court supplies (_Bowen_: conduct must "speak for itself" —
   unequivocally refer to the crime when viewed as a silent film, without the
   intent evidence).
 - **Test slippage.** Verify that the authorities the court marshals apply the
@@ -96,7 +96,7 @@ only as "it has been suggested."
   holding's stability, as is any disclaimer like "no rule can be laid down
   applicable to all cases."
 - **Value judgment.** Extract the court's stated normative ground for the
-  rule where given (*Bowen*: leaving room for abandonment — "the devil may
+  rule where given (_Bowen_: leaving room for abandonment — "the devil may
   lose the contest albeit late in the hour") and note documented rival
   positions (the corroboration view of the overt act, adopted by the Model
   Penal Code school). The rationale is what future courts weigh when the
@@ -106,7 +106,7 @@ only as "it has been suggested."
 
 State the holding precisely — the disposition on each claim, tied to the
 element and test that produced it — and how multiple holdings interact
-(*Bowen*: the evidence was sufficient, yet reversal followed because the
+(_Bowen_: the evidence was sufficient, yet reversal followed because the
 instruction let the jury convict on an artificially truncated slice of the
 conduct). Stay within the four corners: questions the opinion raises but does
 not answer are recorded as open questions, not resolved by inference.

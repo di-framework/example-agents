@@ -1,9 +1,13 @@
-import { CHAT_HELP, createTerminal, runChat } from '../src/index.ts';
+import { CHAT_HELP, createTerminal, runChat } from "../src/index.ts";
 
-await runChat({
-  async chat(message, { signal }) {
-    signal.throwIfAborted();
-    return { content: `You said:\n\n${message}` };
+await runChat(
+  {
+    async chat(message, { signal }) {
+      signal.throwIfAborted();
+      return { content: `You said:\n\n${message}` };
+    },
+    clearHistory() {},
   },
-  clearHistory() {},
-}, createTerminal(), { title: 'Shared TUI · echo demo', help: CHAT_HELP });
+  createTerminal(),
+  { title: "Shared TUI · echo demo", help: CHAT_HELP },
+);

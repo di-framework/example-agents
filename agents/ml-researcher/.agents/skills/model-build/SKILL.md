@@ -6,6 +6,7 @@ description: Turn a natural-language task into a bounded local ONNX model build,
 Clarify task, available dataset, feature order or tokenization, outputs, deployment constraints, and acceptance metric. Do not silently supply fictitious domain data. Save the resulting specification and call BuildModel.
 
 Supported templates:
+
 - Numeric classification: JSONL rows {id, features: number[], label: classIndex}. Binary graphs use one logit; multiclass graphs use one logit per class. Target accuracy is in [0,1].
 - Scalar regression: the same row schema, with a finite numeric label and one output. Target mean squared error is nonnegative.
 - Embedding adaptation: pretrained ONNX with JSONL rows {id, input_ids: number[], positive: number[]}. Each token array must have the specified inputSize; this template does not pad. The graph must expose the named token input, optionally attention_mask/token_type_ids, and one compatible float output. Choose mean, cls, last-token, or none pooling to match the graph. Preserve the tokenizer and record its revision. Target recallAt1 is in [0,1], measured against other held-out positives.

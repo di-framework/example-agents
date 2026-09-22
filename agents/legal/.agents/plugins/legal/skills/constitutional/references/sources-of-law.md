@@ -22,12 +22,12 @@ City) derive their authority from their state.
 
 ## The four sources, by branch
 
-| Source | Made by | Nature |
-|---|---|---|
-| Constitution | Framing/ratification and Article V amendment | Defines the government's structure and powers; source of everything below |
-| Statutes | Legislature | Positive enactments under constitutionally granted power |
-| Regulations | Executive agencies (and occasionally other bodies) under legislative delegation | The delegate elaborates a statute's scheme (e.g. EPA regulations fleshing out the Clean Water Act) |
-| Common law | Courts | Judge-made law with no enacted text behind it; the rule *is* the accumulated case law |
+| Source       | Made by                                                                         | Nature                                                                                             |
+| ------------ | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Constitution | Framing/ratification and Article V amendment                                    | Defines the government's structure and powers; source of everything below                          |
+| Statutes     | Legislature                                                                     | Positive enactments under constitutionally granted power                                           |
+| Regulations  | Executive agencies (and occasionally other bodies) under legislative delegation | The delegate elaborates a statute's scheme (e.g. EPA regulations fleshing out the Clean Water Act) |
+| Common law   | Courts                                                                          | Judge-made law with no enacted text behind it; the rule _is_ the accumulated case law              |
 
 Two structural observations worth keeping:
 
@@ -38,7 +38,7 @@ Two structural observations worth keeping:
   Supreme Court (advised by its rules committees), so a body of
   governing law is made by the judiciary under statutory delegation.
 - **The judiciary is doubly placed**: it is the source of the common
-  law *and* the interpreter of every other source — constitutions,
+  law _and_ the interpreter of every other source — constitutions,
   statutes, and regulations alike.
 
 ## Common law specifics
@@ -52,7 +52,7 @@ Two structural observations worth keeping:
   **displaces** the common law; the common law governs only where no
   enacted law occupies the question.
 - **Federal common law is limited.** Its scope was sharply restricted
-  in the early twentieth century (the *Erie* line, treated in the
+  in the early twentieth century (the _Erie_ line, treated in the
   `civil-procedure` skill), but enclaves persist — admiralty is the
   classic example. Never assume a general federal common law of torts
   or contracts exists.
@@ -75,8 +75,8 @@ Keep two questions separate:
    `SKILL.md`.
 2. **Which court may decide** — jurisdiction. The system rejects both
    easy answers (complete separation; everyone decides everything):
-   state courts decide state *and* federal questions, and federal
-   courts decide federal *and* state questions, each only under
+   state courts decide state _and_ federal questions, and federal
+   courts decide federal _and_ state questions, each only under
    conditions that are themselves contested law. A state court
    applying federal law is bound by the Supremacy Clause's command
    that "the judges in every state shall be bound thereby."
@@ -88,4 +88,4 @@ an actual conflict exists. Federalism as a value counsels courts to
 read federal and state law into peaceful coexistence where possible —
 the preemption inquiry — and judicial review itself is not spelled out
 in the constitutional text; it was confirmed by the early Supreme
-Court (*Marbury v. Madison*).
+Court (_Marbury v. Madison_).

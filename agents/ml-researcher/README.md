@@ -49,15 +49,15 @@ For repository work, try:
 
 The shared TUI provides `/` typeahead, up/down navigation, Tab/Enter completion, editable input, and cancellation. Completion fills the command; submit the completed line to run it. Commands are assembled in [`src/commands.ts`](src/commands.ts) using the shared command factory/spread pattern.
 
-| Command | Purpose |
-| --- | --- |
-| `/objective DESCRIPTION` | Start an objective and complete its workflow |
-| `/build DESCRIPTION` | Specify, build/adapt, evaluate, and export a model |
-| `/inspect`, `/research`, `/experiment` | Run a selected stage |
-| `/implement`, `/verify`, `/report` | Implement, check, or report a selected stage |
-| `/status` | Show saved objective and worktrees without model inference |
-| `/clear` | Clear conversation history, retaining files and run state |
-| `/help`, `/exit` | Help and exit |
+| Command                                | Purpose                                                    |
+| -------------------------------------- | ---------------------------------------------------------- |
+| `/objective DESCRIPTION`               | Start an objective and complete its workflow               |
+| `/build DESCRIPTION`                   | Specify, build/adapt, evaluate, and export a model         |
+| `/inspect`, `/research`, `/experiment` | Run a selected stage                                       |
+| `/implement`, `/verify`, `/report`     | Implement, check, or report a selected stage               |
+| `/status`                              | Show saved objective and worktrees without model inference |
+| `/clear`                               | Clear conversation history, retaining files and run state  |
+| `/help`, `/exit`                       | Help and exit                                              |
 
 A normal natural-language objective runs through completion; separate stage commands are optional. Resume retains artifacts and edits, not the previous chat transcript. Cancellation preserves partial files and logs. A fresh model name is required after a failed or cancelled build; do not change seeds or candidates to chase held-out scores.
 

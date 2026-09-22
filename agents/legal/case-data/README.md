@@ -25,30 +25,30 @@ file; list their workspace-relative paths below.
 
 ## People and organizations
 
-| Name or alias | Role | Relevant relationship |
-| --- | --- | --- |
-| UNKNOWN | UNKNOWN | UNKNOWN |
+| Name or alias | Role    | Relevant relationship |
+| ------------- | ------- | --------------------- |
+| UNKNOWN       | UNKNOWN | UNKNOWN               |
 
 ## Facts and timeline
 
 Distinguish reported facts, disputed allegations, and facts established by a
 document. Give a source for each material event.
 
-| Date | Event or allegation | Status / source |
-| --- | --- | --- |
-| UNKNOWN | UNKNOWN | UNKNOWN |
+| Date    | Event or allegation | Status / source |
+| ------- | ------------------- | --------------- |
+| UNKNOWN | UNKNOWN             | UNKNOWN         |
 
 ## Deadlines
 
 | Date and timezone | Required action | Source / whether verified |
-| --- | --- | --- |
-| UNKNOWN | UNKNOWN | UNKNOWN |
+| ----------------- | --------------- | ------------------------- |
+| UNKNOWN           | UNKNOWN         | UNKNOWN                   |
 
 ## Supporting documents
 
 | Workspace-relative path | Description | Date / author |
-| --- | --- | --- |
-| UNKNOWN | UNKNOWN | UNKNOWN |
+| ----------------------- | ----------- | ------------- |
+| UNKNOWN                 | UNKNOWN     | UNKNOWN       |
 
 ## Research scope and constraints
 

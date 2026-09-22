@@ -31,7 +31,7 @@ establishes coverage.
 
 The `courtlistener` MCP exposes two retrieval paths with different coverage:
 
-- **`semantic_search_opinions`** — meaning-based search over *imported*
+- **`semantic_search_opinions`** — meaning-based search over _imported_
   CourtListener opinion chunks (DI Framework S3 Vectors; the query is
   embedded locally and only the vector leaves the machine). Coverage grows
   during import: a missing result never establishes that no relevant law
@@ -46,7 +46,7 @@ The `courtlistener` MCP exposes two retrieval paths with different coverage:
   paged with `next_cursor`. Requires `COURTLISTENER_API_TOKEN` in the MCP
   server environment; treat token absence as a recorded access failure, not
   a reason to skip the issue.
-- **`get_opinion`** — full opinion text by the *nested* opinion ID from
+- **`get_opinion`** — full opinion text by the _nested_ opinion ID from
   `search_opinions` (never a cluster ID), paged by character offset. It does
   not determine whether the case remains good law.
 
@@ -86,7 +86,7 @@ Before a case enters the working list:
   actually retrieved. Keep opinion IDs and cluster IDs distinct, and never
   cite from a search snippet or single chunk — retain only cases whose
   relevant text was actually read, applying `case-read` to each.
-- Classify what the case is *for*: the proposition it supports for this
+- Classify what the case is _for_: the proposition it supports for this
   issue, with a precise locator, and whether it helps, hurts, or bounds the
   argument. Contrary authority is retained, not filtered out.
 

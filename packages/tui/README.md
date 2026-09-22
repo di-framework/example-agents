@@ -25,24 +25,30 @@ arguments complete with a trailing space. In `/paste` mode the picker offers
 `/send`, `/cancel`, and the exit commands.
 
 ```ts
-import { CHAT_HELP, createTerminal, runChat } from '@di-framework/tui';
+import { CHAT_HELP, createTerminal, runChat } from "@di-framework/tui";
 
-await runChat({
-  chat: (message, options) => agent.chat(message, options),
-  clearHistory: () => memory.clear(),
-  close: () => agent.close(),
-}, createTerminal(), {
-  title: 'My agent',
-  help: CHAT_HELP,
-  commands: [{
-    name: '/status',
-    description: 'Check current status',
-    run: async (_args, { signal, setStatus }) => {
-      setStatus('Fetching status…');
-      return await fetchStatus(signal);
-    },
-  }],
-});
+await runChat(
+  {
+    chat: (message, options) => agent.chat(message, options),
+    clearHistory: () => memory.clear(),
+    close: () => agent.close(),
+  },
+  createTerminal(),
+  {
+    title: "My agent",
+    help: CHAT_HELP,
+    commands: [
+      {
+        name: "/status",
+        description: "Check current status",
+        run: async (_args, { signal, setStatus }) => {
+          setStatus("Fetching status…");
+          return await fetchStatus(signal);
+        },
+      },
+    ],
+  },
+);
 ```
 
 `/help`, `/clear`, `/paste`, `/exit`, and `/quit` are built in. Custom command
@@ -81,10 +87,12 @@ Tests can import `@di-framework/tui/core` without loading React/Ink:
 
 ```ts
 const model = createTerminalModel();
-model.submit('hello');
+model.submit("hello");
 model.endInput();
-await runChat(fakeSession, model.terminal, { title: 'Test', help: '' });
-const replies = model.getSnapshot().messages.filter(m => m.role === 'assistant');
+await runChat(fakeSession, model.terminal, { title: "Test", help: "" });
+const replies = model
+  .getSnapshot()
+  .messages.filter((m) => m.role === "assistant");
 ```
 
 The package tests use deferred promises for deterministic in-flight

@@ -16,6 +16,10 @@
     "@di-framework/tui": "workspace:*",
     "zod": "4.6.1"
   },
-  "devDependencies": { "@types/bun": "latest" },
-  "peerDependencies": { "typescript": "^7" }
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  }
 }

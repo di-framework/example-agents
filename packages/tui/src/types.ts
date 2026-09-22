@@ -1,4 +1,4 @@
-export type MessageRole = 'user' | 'assistant' | 'info' | 'error';
+export type MessageRole = "user" | "assistant" | "info" | "error";
 
 export interface WriteOptions {
   role?: MessageRole;
@@ -15,7 +15,10 @@ export interface ChatTerminal {
 }
 
 export interface ChatSession {
-  chat(message: string, options: { signal: AbortSignal }): Promise<{ content: string }>;
+  chat(
+    message: string,
+    options: { signal: AbortSignal },
+  ): Promise<{ content: string }>;
   clearHistory(): void | Promise<void>;
   /** If supplied, runChat owns cleanup and calls this once. */
   close?(): void | Promise<void>;
@@ -35,7 +38,10 @@ export interface CommandSuggestion {
 }
 
 export interface ChatCommand extends CommandSuggestion {
-  run(args: string, context: CommandContext): Promise<string | void> | string | void;
+  run(
+    args: string,
+    context: CommandContext,
+  ): Promise<string | void> | string | void;
 }
 
 export interface ChatOptions {

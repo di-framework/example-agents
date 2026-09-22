@@ -27,17 +27,17 @@ different observations. `VISION_MODEL` can select an available model explicitly.
 
 ## Observed output
 
-| Check | Result |
-| --- | --- |
-| Source coverage | 0–31.147783 seconds, two successful windows |
-| Proposed outcome | One solo home run, Matt Olson batting, Valdez pitching |
-| Scoreboard | Houston 1, Atlanta 1; bottom of the first, one out |
-| Evidence | Delivery/swing frames and the explicit home-run graphic |
-| First event interval | 3.019683–19.035683 seconds, ID `v0-1` |
-| Second window | Continuation/replay linked to `v0-1` |
-| Candidate counts | `{"home_run": 1}` |
-| Missing observations | Ball-strike count `null`; first window's base occupancy `null` |
-| Saved game/player stats | None; output is a review-required draft |
+| Check                   | Result                                                         |
+| ----------------------- | -------------------------------------------------------------- |
+| Source coverage         | 0–31.147783 seconds, two successful windows                    |
+| Proposed outcome        | One solo home run, Matt Olson batting, Valdez pitching         |
+| Scoreboard              | Houston 1, Atlanta 1; bottom of the first, one out             |
+| Evidence                | Delivery/swing frames and the explicit home-run graphic        |
+| First event interval    | 3.019683–19.035683 seconds, ID `v0-1`                          |
+| Second window           | Continuation/replay linked to `v0-1`                           |
+| Candidate counts        | `{"home_run": 1}`                                              |
+| Missing observations    | Ball-strike count `null`; first window's base occupancy `null` |
+| Saved game/player stats | None; output is a review-required draft                        |
 
 The model warned that the ball's landing was not clearly visible in the sampled frames
 and used the explicit broadcast graphic as evidence. A frame was inspected locally to

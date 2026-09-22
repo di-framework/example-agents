@@ -29,7 +29,7 @@ from the federal pattern in numbering and substance. Do not transpose FRCP
 doctrine into a state forum, or a general rule over a controlling local rule
 or scheduling order, without confirming the state or court actually follows
 it. In federal diversity cases, separate procedural rules from substantive
-state law under the *Erie* doctrine and mark close classifications as
+state law under the _Erie_ doctrine and mark close classifications as
 contested rather than assuming an answer.
 
 ## Analytical sequence
@@ -49,7 +49,7 @@ reached:
    time; distinguish it from waivable defenses and note removal and remand
    where both state and federal forums are possible.
 3. **Pleadings.** Evaluate claims and defenses against the governing
-   pleading standard — plausibility under *Twombly*/*Iqbal* in federal
+   pleading standard — plausibility under _Twombly_/_Iqbal_ in federal
    court, the forum's own standard elsewhere — plus heightened requirements
    for fraud-type claims. Track amendment rights and limits, compulsory
    versus permissive counterclaims, and joinder of claims and parties.

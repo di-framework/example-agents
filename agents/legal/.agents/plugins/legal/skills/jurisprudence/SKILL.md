@@ -55,6 +55,7 @@ assumptions, contrary evidence and plausible alternatives; identify what would
 distinguish them. Separate fatal defects from repairable gaps and qualifications.
 Stop when further objections would not materially affect the result.
 º
+
 ## Judge, explain and revise
 
 Separate what is established, inferred and unknown. Explain confidence through

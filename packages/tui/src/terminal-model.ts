@@ -1,5 +1,5 @@
-import type { ChatTerminal, CommandSuggestion, MessageRole } from './types.ts';
-import { BUILTIN_COMMANDS } from './commands.ts';
+import type { ChatTerminal, CommandSuggestion, MessageRole } from "./types.ts";
+import { BUILTIN_COMMANDS } from "./commands.ts";
 
 export interface ChatMessage {
   id: number;
@@ -19,7 +19,12 @@ export interface TerminalSnapshot {
 /** Observable state and an input queue, independent of React and process globals. */
 export function createTerminalModel() {
   let snapshot: TerminalSnapshot = {
-    messages: [], prompt: 'You> ', status: null, inputEnded: false, closed: false, commands: BUILTIN_COMMANDS,
+    messages: [],
+    prompt: "You> ",
+    status: null,
+    inputEnded: false,
+    closed: false,
+    commands: BUILTIN_COMMANDS,
   };
   const listeners = new Set<() => void>();
   const interrupts = new Set<() => void>();
@@ -31,7 +36,9 @@ export function createTerminalModel() {
     for (const listener of listeners) listener();
   };
   const append = (content: string, role: MessageRole) => {
-    update({ messages: [...snapshot.messages, { id: nextId++, content, role }] });
+    update({
+      messages: [...snapshot.messages, { id: nextId++, content, role }],
+    });
   };
   const resolvePending = (line: string | null) => {
     const resolve = pending;
@@ -41,24 +48,29 @@ export function createTerminalModel() {
   const terminal: ChatTerminal = {
     async readLine(prompt) {
       if (snapshot.closed) return null;
-      if (pending) throw new Error('Only one readLine may be pending');
+      if (pending) throw new Error("Only one readLine may be pending");
       update({ prompt });
       if (lines.length) return lines.shift()!;
       if (snapshot.inputEnded) return null;
-      return new Promise<string | null>((resolve) => { pending = resolve; });
+      return new Promise<string | null>((resolve) => {
+        pending = resolve;
+      });
     },
     write(text, options) {
-      if (!snapshot.closed) append(text, options?.role ?? 'info');
+      if (!snapshot.closed) append(text, options?.role ?? "info");
     },
     setStatus(status) {
       if (!snapshot.closed) update({ status });
     },
     setCommands(commands) {
-      if (!snapshot.closed) update({ commands: commands.map((command) => ({ ...command })) });
+      if (!snapshot.closed)
+        update({ commands: commands.map((command) => ({ ...command })) });
     },
     onInterrupt(handler) {
       interrupts.add(handler);
-      return () => { interrupts.delete(handler); };
+      return () => {
+        interrupts.delete(handler);
+      };
     },
     close() {
       if (snapshot.closed) return;
@@ -73,15 +85,19 @@ export function createTerminalModel() {
     getSnapshot: () => snapshot,
     subscribe(listener: () => void) {
       listeners.add(listener);
-      return () => { listeners.delete(listener); };
+      return () => {
+        listeners.delete(listener);
+      };
     },
     submit(line: string) {
       if (snapshot.closed || snapshot.inputEnded) return;
-      append(line, 'user');
+      append(line, "user");
       if (pending) resolvePending(line);
       else lines.push(line);
     },
-    interrupt() { for (const handler of interrupts) handler(); },
+    interrupt() {
+      for (const handler of interrupts) handler();
+    },
     endInput() {
       if (snapshot.closed || snapshot.inputEnded) return;
       update({ inputEnded: true });
