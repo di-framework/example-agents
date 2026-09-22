@@ -1,5 +1,6 @@
 import type { ChatCommand } from "@di-framework/tui/core";
 import type { GameLog } from "./game-log.ts";
+import { resolveLiveUrl } from "./live-capture.ts";
 import { formatRecordingSummary } from "./review.ts";
 import type { VideoOptions } from "./video.ts";
 
@@ -10,6 +11,16 @@ export interface SpectatorCommandSession {
   ): Promise<GameLog>;
   /** Optional short sample (defaults to first 2 minutes via duration override). */
   sample?(path: string, options?: VideoOptions): Promise<GameLog>;
+  /** Live OBS stream or demo until cancelled (or maxSeconds). */
+  recordLive?(options?: {
+    source?: "demo" | "stream";
+    url?: string;
+    segmentSeconds?: number;
+    fps?: number;
+    maxSeconds?: number;
+    signal?: AbortSignal;
+    onProgress?: (log: GameLog) => void | Promise<void>;
+  }): Promise<GameLog>;
 }
 
 function mediaPath(args: string, command: string): string {
@@ -71,7 +82,45 @@ export function createSpectatorCommands(
         context.signal.throwIfAborted();
         context.write(formatRecordingSummary(log));
         context.write(
-          "Sample only. Use /record PATH for the full file.",
+          "Sample only. Use /record PATH for a finished file, or /live with an OBS RTSP URL.",
+        );
+      },
+    },
+    {
+      name: "/live",
+      description:
+        "Live capture from OBS (LIVE_URL / RTSP) or demo. Runs until cancelled.",
+      arguments: "[demo | rtsp://…]",
+      async run(args, context) {
+        if (!session.recordLive)
+          throw new Error("Live capture is unavailable in this session");
+        const target = args.trim();
+        const fromEnv = resolveLiveUrl();
+        if (!target && !fromEnv) {
+          throw new Error(
+            "Usage: /live demo   or   /live rtsp://…   or set LIVE_URL in .env",
+          );
+        }
+        const isDemo = target === "demo";
+        const url = isDemo ? undefined : resolveLiveUrl(target || undefined);
+        context.setStatus(
+          isDemo
+            ? "Live demo capture… (cancel to stop)"
+            : `Live stream ${url}… (cancel to stop)`,
+        );
+        const log = await session.recordLive({
+          source: isDemo ? "demo" : "stream",
+          url,
+          signal: context.signal,
+          onProgress: (draft) =>
+            context.setStatus(
+              `Live recorded through ${clock(draft.coverage.analyzedThrough)} (lag ~1 segment)`,
+            ),
+        });
+        context.signal.throwIfAborted();
+        context.write(formatRecordingSummary(log));
+        context.write(
+          "Live session ended. Ask about the recording, or /record a file for offline footage.",
         );
       },
     },
@@ -93,6 +142,10 @@ export function createBaseballCommands(
     return createSpectatorCommands({
       record: session.record.bind(session),
       sample: session.record.bind(session),
+      recordLive:
+        "recordLive" in session && typeof (session as SpectatorCommandSession).recordLive === "function"
+          ? (session as SpectatorCommandSession).recordLive!.bind(session)
+          : undefined,
     });
   }
   // Legacy stats-agent media commands (photo + raw JSON video).

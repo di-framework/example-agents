@@ -29,6 +29,9 @@ function sampleLog(): ReturnType<typeof draftToGameLog> {
 }
 
 test("spectator routes /record with progress and recording summary", async () => {
+  const previous = process.env.LIVE_URL;
+  process.env.LIVE_URL = "rtsp://127.0.0.1:8554/from-env";
+  try {
   const model = createTerminalModel();
   const calls: string[] = [];
   let cleared = 0;
@@ -49,6 +52,13 @@ test("spectator routes /record with progress and recording summary", async () =>
       } as Parameters<NonNullable<NonNullable<typeof options>["onProgress"]>>[0]);
       return sampleLog();
     },
+    async recordLive(options) {
+      calls.push(`live:${options?.url ?? options?.source ?? "stream"}`);
+      await options?.onProgress?.({
+        coverage: { analyzedThrough: 12, requestedEnd: 12 },
+      } as Parameters<NonNullable<NonNullable<typeof options>["onProgress"]>>[0]);
+      return sampleLog();
+    },
   };
   const statuses: (string | null)[] = [];
   model.subscribe(() => {
@@ -57,15 +67,25 @@ test("spectator routes /record with progress and recording summary", async () =>
   for (const line of [
     '/record "game clip.mp4"',
     "/video sample.mp4",
+    "/live demo",
+    "/live rtsp://127.0.0.1:8554/live",
+    "/live",
     "/record",
     "/clear",
     "/exit",
   ])
     model.submit(line);
   await runSpectatorInteractive(session, model.terminal);
-  expect(calls).toEqual(["record:game clip.mp4", "record:sample.mp4"]);
+  expect(calls).toEqual([
+    "record:game clip.mp4",
+    "record:sample.mp4",
+    "live:demo",
+    "live:rtsp://127.0.0.1:8554/live",
+    "live:rtsp://127.0.0.1:8554/from-env",
+  ]);
   expect(cleared).toBe(1);
   expect(statuses.some((s) => s?.includes("Recorded through"))).toBe(true);
+  expect(statuses.some((s) => s?.includes("Live recorded through"))).toBe(true);
   const text = model
     .getSnapshot()
     .messages.map((entry) => entry.content)
@@ -74,6 +94,10 @@ test("spectator routes /record with progress and recording summary", async () =>
   expect(text).toContain("not official statistics");
   expect(text).toContain("Usage: /record PATH");
   expect(text).toContain("Sample only");
+  } finally {
+    if (previous === undefined) delete process.env.LIVE_URL;
+    else process.env.LIVE_URL = previous;
+  }
 });
 
 test("legacy stats session still routes /photo and /video JSON drafts", async () => {

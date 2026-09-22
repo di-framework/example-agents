@@ -14,9 +14,10 @@ export const HELP = `Tell me about your team, paste postgame stats, or ask for a
 ${CHAT_HELP}`;
 
 export const SPECTATOR_HELP = `I am an AI baseball spectator. I record what I see from game footage into a durable log.
-/record PATH  Record a full game file
+/record PATH  Record a finished game file
+/live [demo|URL]  Live from OBS (default LIVE_URL from .env) until you cancel
 /video PATH   Quick sample (first two minutes)
-Ask about the current recording after /record. Season bookkeeping is not part of this spectator.
+Ask about the current recording after /record or /live. Season bookkeeping is not part of this spectator.
 ${CHAT_HELP}`;
 
 export interface BaseballSession extends BaseballCommandSession {

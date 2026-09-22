@@ -2,43 +2,103 @@
 
 > STATUS: Prototype
 
-An AI baseball spectator that does one job: **record what it sees** from game footage into a
-durable game log. Sideline / parent-cam footage is the default mode. Later models plug in as
-**enhancers** that append layers on the same log without rewriting the observer pass.
+An AI baseball spectator with one job: **record what it sees** into a durable game log.
 
-Season bookkeeping (SQLite roster/stats) still exists as a legacy `--stats` path; it is not
-part of the spectator.
+- **Finished files** — `/record` or `--record` over a local mp4
+- **Live OBS streams** — RTSP / RTMP / SRT via `LIVE_URL` in `.env`
+- **Enhancers** — plug in more models later to refine the same log without rewriting it
 
-## Create a spectator
+Sideline / parent-cam is the default observation mode. The log is observation data, not an
+official scorebook. Season SQLite tracking remains available as a legacy `--stats` path.
 
-From this repository, run `bun install`, install [FFmpeg](https://ffmpeg.org/download.html)
-(`ffmpeg` and `ffprobe` on PATH), and sign in to Codex. Then:
+## Requirements
+
+From the repo root:
 
 ```sh
+bun install
 cd agents/baseball
+```
+
+Also:
+
+- [FFmpeg](https://ffmpeg.org/download.html) with `ffmpeg` and `ffprobe` on PATH (`brew install ffmpeg` on macOS)
+- Codex CLI sign-in for the default vision path (or inject your own vision `ChatModel`)
+
+Copy env defaults:
+
+```sh
+cp .env.example .env
+```
+
+## Quick start
+
+### 1. Live from OBS (recommended at the field)
+
+Point OBS (or MediaMTX / nginx-rtmp / any encoder) at a local publish URL, then set:
+
+```env
+# agents/baseball/.env  (Bun loads this automatically)
+LIVE_URL=rtsp://127.0.0.1:8554/live
+```
+
+Start the spectator:
+
+```sh
+bun start --live --output live.json
+# Ctrl+C stops; the log is finalized and printed.
+```
+
+Or in the interactive TUI (`bun start`):
+
+```text
+/live
+```
+
+`/live` with no args uses `LIVE_URL`. Override per run:
+
+```sh
+bun start --live --url rtmp://127.0.0.1/live/obs --output live.json
+```
+
+```text
+/live rtsp://127.0.0.1:8554/other
+/live demo
+```
+
+`--demo` / `/live demo` uses a lavfi test pattern (no OBS) for plumbing checks.
+
+Live capture remuxes the stream into short segment files, observes each closed segment into
+the game log, and lags by about one segment. Only `rtsp://`, `rtsps://`, `rtmp://`,
+`rtmps://`, and `srt://` are accepted — not http(s) VOD pages or MLB.TV.
+
+RTSP uses TCP transport for more reliable sideline Wi‑Fi.
+
+### 2. Record a finished game file
+
+```sh
 bun start --record /path/to/game.mp4 --output game.json
 ```
 
-That analyzes the **full file** by default (sideline mode), checkpoints `game.json` after each
-window, prints a human recording summary on stdout, and writes the durable log to `--output`.
-Progress goes to stderr.
+Full file by default (sideline mode). Checkpoints `game.json` after each window. Human
+summary on stdout; progress on stderr.
 
-In the interactive spectator (`bun start`):
+In chat:
 
 ```text
 /record /path/to/game.mp4
-What did you catch in the first inning?
+What did you catch early in the game?
 ```
 
 Quick two-minute sample: `/video PATH` or `bun start --video PATH`.
 
-### Enhance the same log later
+### 3. Enhance the same log later
 
 ```sh
 bun start --enhance game.json --with summary --output game.json
 ```
 
-Programmatically:
+New models append an `enhancements[]` layer; they do not replace observer `windows` / `events`.
 
 ```ts
 import {
@@ -51,253 +111,88 @@ import {
 const spectator = createBaseballSpectator({
   chatModel,
   visionModel,
-  priors: { teamName: "Owls", teamColors: "navy/white", focusPlayers: [{ number: "7", name: "Emma" }] },
+  priors: {
+    teamName: "Owls",
+    teamColors: "navy/white",
+    focusPlayers: [{ number: "7", name: "Emma" }],
+  },
   enhancers: [summaryLayer(chatModel)],
 });
+
 const log = await spectator.record("/path/to/game.mp4", { enhance: true });
 console.log(formatRecordingSummary(log));
 
-// Add another model anytime:
+await spectator.recordLive({ /* uses LIVE_URL when url omitted */ });
+
 await spectator.enhance([
   enhancer({
     id: "identity",
     model: anotherModel,
-    instructions: "Resolve jersey numbers to names from priors only; never invent players.",
+    instructions:
+      "Resolve jersey numbers to names from priors only; never invent players.",
   }),
 ]);
 ```
 
-The game log keeps raw observer `windows` / `events` and an `enhancements[]` list. New models
-append; they do not replace the recording.
+## Commands and flags
+
+| Command / flag | What it does |
+| --- | --- |
+| `bun start` | Interactive spectator TUI |
+| `bun start --live` | Live pull from `LIVE_URL` until Ctrl+C |
+| `bun start --live --url …` | Override stream URL |
+| `bun start --live --demo` | Synthetic pattern (no OBS) |
+| `bun start --record FILE` | Observe a finished local video (full file) |
+| `bun start --video FILE` | Short sample (default 120s) |
+| `bun start --enhance LOG` | Append a model layer (`--with summary`) |
+| `/live` | Same as `--live` using `LIVE_URL` |
+| `/record PATH` | Same as `--record` |
+| `/video PATH` | Two-minute sample |
+| `--output path.json` | Checkpoint the game log while running |
+| `--segment N` | Live segment length in seconds (1–20, default 5) |
+| `--max-seconds N` | Stop live capture after N seconds of timeline |
+| `--fps 0.5..2` | Frame sample rate (default 1) |
+| `--mode sideline\|broadcast` | Observation bias (default sideline) |
+| `bun start --stats` | Legacy season-tracker chat |
+
+## How observation works
+
+**Files:** FFmpeg decodes ~20s windows with 4s overlap, scales to ≤1280px wide, samples at
+`--fps`. The vision model returns structured events (plays, scoreboard snapshots, evidence
+timestamps, confidence, replay/duplicate links). High-confidence live non-duplicates feed
+`candidateCounts`.
+
+**Live:** FFmpeg pulls the OBS URL into `seg_XXXXX.mp4` segments; each closed segment is
+observed the same way and appended to one `GameLog`.
+
+**Output:** Durable JSON with `windows`, `events`, `coverage`, `warnings`, and
+`enhancements[]`. Evidence frame hashes are kept; video frames are not. Seek the original
+file or OBS recording to cited seconds. In events, `presentation: "live"` means original
+presentation vs replay — not “this is a livestream.”
+
+Limits: sparse sampling and no audio can miss plays; youth sideline footage is harder than
+broadcasts; identity and replay detection need review. Smoke notes for a finished MLB clip:
+[VIDEO_EVALUATION.md](VIDEO_EVALUATION.md).
+
+Vision defaults to `CodexVisionModel` (`codex exec --image`). Set `VISION_MODEL` to pin a
+CLI model, or inject any image-capable DI Framework `ChatModel`. Sampled frames leave the
+machine for that provider; the game log stays local.
 
 ## Legacy season tracker
 
-`bun start --stats` opens the older team/season SQLite chat (roster, `save_game`, reports).
-`bun run demo` still exercises that synthetic scorebook path without vision.
-
----
-
-## Watch a recorded game (observer details)
-
-Install [FFmpeg](https://ffmpeg.org/download.html), including `ffmpeg` and `ffprobe`
-on PATH (`brew install ffmpeg` on macOS). In chat:
-
-```text
-/video /path/to/game.mp4
-Explain the plays you observed and what needs review.
-```
-
-This analyzes the first two minutes, then keeps the draft available for follow-up chat.
-For a specific passage or a whole recording:
+Not part of the spectator. For the older SQLite roster / `save_game` / season-report agent:
 
 ```sh
-bun start --video /path/to/game.mp4 --start 300 --duration 120 --output plays.json
-bun start --video /path/to/game.mp4 --duration all --output full-game.json
+bun start --stats
+bun start --report TEAM_ID
+bun start --export TEAM_ID > season.csv
+bun start --photo /path/to/scorebook.jpg
+bun run demo
 ```
 
-`--start` and `--duration` are seconds on the video timeline. Default duration is 120
-seconds; `all` processes the remaining recording, up to six hours per invocation.
-Default `--fps 1` samples one frame per second; supported values are 0.5–2. Higher
-sampling uses more image inputs. Whole games require many sequential model calls and
-may be slower than playback. This is recorded-file analysis, not a real-time service.
-
-The pipeline:
-
-1. FFmpeg decodes 20-second windows with four seconds of overlap, preserves the selected
-   source timestamps, and scales frames to at most 1280 pixels wide.
-2. The vision model receives ordered images, timestamps, and the latest 40 proposed
-   events. It reads visible scoreboard information and proposes outcomes, with evidence
-   frames, uncertainty, and original-presentation/replay labels.
-3. Responses must match the schema and cite frames actually supplied. Replays and linked
-   duplicates do not enter `candidateCounts`; neither do uncertain or lower-confidence
-   events. Those counts remain observations for review, not official baseball statistics.
-4. `--output` replaces the JSON draft after each successful window. If a later request
-   fails or is cancelled, earlier windows remain in that file with `status: in_progress`.
-   `complete` means the requested interval was processed, not that every play was captured.
-   Stdout emits the final JSON; progress goes to stderr. Temporary frames are removed.
-
-The output includes scoreboard snapshots, proposed pitches/outcomes, visible player
-names, timestamps, duplicate references, coverage, and a hash of the sampled image
-evidence. It does not retain video frames. Review by seeking to the cited seconds in the
-original recording. `live` in an event means original presentation rather than a replay;
-it does not imply a live streaming connection.
-
-Video analysis has no stats tools and cannot save game records. In chat, confirm the
-final score, game date, player identities, and all counts in each category you want saved.
-The agent must keep missing categories unrecorded. A highlight cannot establish a full
-game's pitch count, RBI, earned runs, or fielding stats. MLB examples belong to their
-own teams/seasons with a nine-inning ERA basis.
-
-Current limits: local completed video files only; no live URLs, MLB.TV connection,
-audio commentary, continuous ball tracking, or calibrated accuracy guarantee. Sparse
-sampling can miss fast action and complete plays, and replay detection can be wrong.
-Full-game stat accuracy and youth-game footage still need evaluation. The live smoke
-test uses an official MLB highlight; see [video evaluation](VIDEO_EVALUATION.md).
-
-Programmatic use accepts the same injected vision `ChatModel` as photos:
-
-```ts
-const draft = await baseball.watchVideo("/path/to/game.mp4", {
-  start: 300,
-  duration: 120,
-  fps: 1,
-  onProgress: (draft) => console.log(draft.coverage.analyzedThrough),
-});
-```
-
-For model integration and authentication, see the photo section below. Each video
-window uses [multiple image inputs](https://developers.openai.com/api/docs/guides/images-vision),
-not a native video payload. No new model download or inference service is needed.
-
-## Read a scorebook photo
-
-In chat, enter a local image path (spaces are supported):
-
-```text
-/photo /path/to/scorebook.jpg
-```
-
-The vision model reads the image and returns a draft with player rows, counts, and
-warnings for unclear handwriting or missing columns. Review it, provide corrections,
-and ask the agent to save the confirmed stats. Reading an image does not write game
-records. Missing cells remain `null`; blank cells are never assumed to mean zero.
-If a category is incomplete, clarify its missing counts or leave that category unrecorded.
-
-For extraction alone:
-
-```sh
-bun start --photo /path/to/scorebook.png
-# Optionally choose the image-capable model available to your account:
-VISION_MODEL=your-model-id bun start
-```
-
-PNG, JPEG, and WebP are accepted up to 20 MiB. Convert HEIC or PDF first. Use a clear,
-upright image with readable column headers. Interpretation of handwritten scoring
-symbols needs scorer review; the current live smoke test covers a printed synthetic
-score sheet, not a benchmark of handwritten scorebooks.
-
-The default `CodexVisionModel` sends image attachments through
-[`codex exec --image`](https://learn.chatgpt.com/docs/cli/reference), using the CLI's
-default model unless `VISION_MODEL` is set. It requests a JSON schema, uses a temporary
-directory with a read-only sandbox, disables shell/web tools, ignores user configuration,
-and removes its temporary files afterward. Authentication still uses the existing sign-in.
-Extraction times out after 120 seconds and supports cancellation. DI Framework 5.3.2's
-subscription bridge is text-only, so this dedicated image adapter supplies the vision
-step while DI Framework handles the chat and stats tools.
-
-You can instead inject an image-capable API model (including a compatible local endpoint):
-
-```ts
-import { OpenAiChatModel } from "@di-framework/ai";
-import { createBaseballAgent } from "./src/agent.ts";
-
-const baseball = createBaseballAgent(chatModel, {
-  visionModel: new OpenAiChatModel({
-    model: "your-vision-model",
-    apiKey: process.env.OPENAI_API_KEY,
-  }),
-});
-try {
-  console.log(await baseball.readPhoto("/path/to/scorebook.jpg"));
-} finally {
-  baseball.close();
-}
-```
-
-The injected model must accept image bytes and return the requested structured data.
-The image is passed as multimodal content, not as a filename in a text prompt.
-See [OpenAI image inputs](https://developers.openai.com/api/docs/guides/images-vision).
-
-Example chat:
-
-```text
-Create the Owls for Fall 2026, Majors division. Use a six-inning ERA basis.
-Add Alex, jersey 7, and Sam, jersey 12.
-We beat the Foxes 5–3 on September 12, 2026. Alex threw 38 pitches.
-The source is my postgame scorebook. Other stats aren't recorded yet.
-Show our season record and Alex's pitch log.
-Correct Alex's pitch count in that game to 40; I missed two pitches.
-```
-
-Use `/paste` for multiline scorebooks, `/send` to submit, `/clear` to reset chat while
-keeping stats, and `/exit` to leave. The agent asks about ambiguous names and missing
-counts. It can save a final score or pitch count before the rest of the scorebook.
-
-## Recorded data
-
-- Each team ID identifies one team and season. Setup includes division and an explicit
-  6-, 7-, or 9-inning ERA basis; this is a reporting setting, not eligibility enforcement.
-- Roster entries have a stable player ID, display name, jersey number, and active status.
-  Retiring or renaming a player preserves their stats. First names/nicknames work.
-- Games have a stable ID, date, opponent, doubleheader game number, final score,
-  scorebook source, and player lines. Only completed games are entered.
-- Each player line can include complete batting, pitching, and/or fielding categories,
-  plus an independently recorded pitch count. A category is `null` when unrecorded.
-  Every count within a supplied category is required; missing counts are never filled
-  with zero. Only include players who participated.
-- Corrections replace the complete game using its current revision and a reason.
-  Old versions remain accessible through `game_history`. Voiding removes a game from
-  reports while preserving its history; a correction can restore it.
-
-Batting fields: `AB`, `H`, `doubles`, `triples`, `HR`, `R`, `RBI`, `BB`, `HBP`, `SO`,
-`SB`, `CS`, `SF`, `SH`, `CI` (catcher interference). Pitching: `outs`, `H`, `R`, `ER`,
-`BB`, `HBP`, `SO`. Fielding: `PO`, `A`, `E`. Zero means known zero.
-
-Season rates use summed counts. Reports include recorded-game coverage and preserve
-undefined rates as `null`. IP uses baseball notation: seven outs is `2.1`, meaning two
-innings and one out. Display that as notation, never a decimal in calculations.
-
-Formula references:
-
-- AVG = H/AB; SLG = total bases/AB. [MLB glossary](https://www.mlb.com/glossary/standard-stats/slugging-percentage).
-- OBP = (H+BB+HBP)/(AB+BB+HBP+SF). [MLB glossary](https://www.mlb.com/glossary/standard-stats/on-base-percentage).
-- WHIP = (BB+H)/(outs/3). [MLB glossary](https://www.mlb.com/glossary/standard-stats/walks-and-hits-per-inning-pitched).
-- ERA = ER × configured innings/(outs/3); MLB uses nine. [MLB glossary](https://www.mlb.com/glossary/standard-stats/earned-run-average).
-
-OPS = OBP+SLG; fielding percentage = (PO+A)/(PO+A+E). Plate appearances include
-AB, BB, HBP, SF, SH, and CI. Saved counts reflect the scorer's attribution; video
-observations do not adjudicate errors or earned runs.
-
-## Reports and exports
-
-Use `list_teams` in chat to see saved IDs. JSON and CSV reports also work without a model:
-
-```sh
-bun start --report owls-2026
-bun start --export owls-2026 > season.csv
-```
-
-CSV contains player summaries, opportunity counts, and coverage; blank cells mean
-unrecorded/undefined. Chat reports can filter by inclusive start/end dates. Pitch logs
-include recorded game dates and counts. They do not calculate legal pitching eligibility
-or required rest, including workload for other teams.
-
-Data files under `data/` are excluded from Git. Close the agent before copying the SQLite
-file for backup. Chat messages and tool results go to the configured model provider;
-local SQLite storage does not make chat inference local. Photos and sampled video frames
-are sent to the selected vision provider. Source metadata and evidence hashes are retained
-with drafts; the tracker does not copy images/video into its database. Reports and exports run locally.
-
-Live streaming, spreadsheet imports, and GameChanger synchronization are not implemented.
-
-## Use in code
-
-```ts
-import { createBaseballAgent } from "./src/agent.ts";
-
-const baseball = createBaseballAgent(chatModel, {
-  databasePath: "./team.sqlite",
-});
-try {
-  console.log((await baseball.agent.chat("Show the saved teams")).content);
-} finally {
-  baseball.close();
-}
-```
-
-For deterministic integrations, import `BaseballStore` from `src/store.ts`; its methods
-validate the same inputs as the agent tools. `scripts/demo.ts` contains a full example
-scorebook entry. No external database service or embedding model is needed.
+Default DB: `agents/baseball/data/baseball.sqlite` (gitignored). Photos and chat for this
+path still use Codex / the configured model. Spreadsheet and GameChanger sync are not
+implemented.
 
 ## Verify
 
@@ -307,8 +202,5 @@ bun run typecheck
 bun run demo
 ```
 
-Tests use synthetic data and injected inference to exercise real tool calls, formulas,
-persistence, stale edits, game history, missing data, exports, image transport, and
-vision cancellation without credentials. Video tests exercise the actual FFmpeg decoder,
-timestamp evidence, overlapping windows, duplicate handling, partial checkpoints, and
-model isolation; decoder tests skip when FFmpeg is absent.
+Tests cover game-log / enhancer plumbing, live demo segments (when FFmpeg is present),
+file observer windows, and the legacy store — mostly with fake models, no credentials.

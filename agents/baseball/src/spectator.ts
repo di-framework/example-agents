@@ -18,6 +18,7 @@ import {
 } from "./game-log.ts";
 import { CodexVisionModel } from "./codex-vision.ts";
 import { watchVideo, type VideoOptions } from "./video.ts";
+import { recordLive, type LiveRecordOptions } from "./live.ts";
 
 export const SPECTATOR_INSTRUCTIONS = `You are an AI baseball spectator. Your only job is to help with durable game recordings from footage.
 You have no season book, roster tools, or stats calculator. Never invent plays that are not in the current game log.
@@ -99,6 +100,23 @@ export function createBaseballSpectator(
       if (enhance && enhancers.length) {
         log = await applyEnhancers(log, enhancers, {
           signal: recordOptions.signal,
+        });
+      }
+      pendingLog = log;
+      return log;
+    },
+    async recordLive(
+      liveOptions: LiveRecordOptions & { enhance?: boolean } = {},
+    ) {
+      const { enhance = false, ...rest } = liveOptions;
+      let log = await recordLive(visionModel, {
+        mode,
+        priors,
+        ...rest,
+      });
+      if (enhance && enhancers.length) {
+        log = await applyEnhancers(log, enhancers, {
+          signal: liveOptions.signal,
         });
       }
       pendingLog = log;

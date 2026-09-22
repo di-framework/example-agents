@@ -13,6 +13,8 @@ import { createBaseballSpectator } from "./spectator.ts";
 import { CodexVisionModel } from "./codex-vision.ts";
 import { readScorebook } from "./vision.ts";
 import { watchVideo } from "./video.ts";
+import { recordLive } from "./live.ts";
+import { resolveLiveUrl } from "./live-capture.ts";
 
 export { createBaseballAgent } from "./agent.ts";
 export { createBaseballSpectator } from "./spectator.ts";
@@ -21,6 +23,8 @@ export { reportCsv } from "./export.ts";
 export { CodexVisionModel } from "./codex-vision.ts";
 export { readScorebook } from "./vision.ts";
 export { watchVideo } from "./video.ts";
+export { recordLive } from "./live.ts";
+export { isLiveStreamUrl, resolveLiveUrl } from "./live-capture.ts";
 export { formatRecordingSummary } from "./review.ts";
 export {
   applyEnhancers,
@@ -31,6 +35,7 @@ export type { Enhancer } from "./enhance.ts";
 export { draftToGameLog, parseGameLog } from "./game-log.ts";
 export type { GameLog, SpectatorPriors } from "./game-log.ts";
 export type { VideoDraft, VideoEvent } from "./video-schema.ts";
+export type { LiveRecordOptions } from "./live.ts";
 
 async function checkpointJson(output: string, value: unknown) {
   await mkdir(dirname(output), { recursive: true });
@@ -66,6 +71,11 @@ if (import.meta.main) {
         photo: { type: "string" },
         video: { type: "string" },
         record: { type: "string" },
+        live: { type: "boolean" },
+        demo: { type: "boolean" },
+        url: { type: "string" },
+        segment: { type: "string" },
+        "max-seconds": { type: "string" },
         enhance: { type: "string" },
         with: { type: "string" },
         start: { type: "string" },
@@ -78,6 +88,9 @@ if (import.meta.main) {
     });
     if (values.help) {
       console.log(`Usage: bun start
+       bun start --live [--url rtsp://…] [--segment 5] [--max-seconds N]
+                 [--fps 0.5..2] [--output live.json] [--mode sideline|broadcast]
+       bun start --live --demo [--max-seconds N]   # lavfi test pattern, no OBS
        bun start --record path/to/game.mp4 [--output game.json] [--duration all|SECONDS]
                  [--start SECONDS] [--fps 0.5..2] [--mode sideline|broadcast]
        bun start --enhance path/to/game.json [--with summary] [--output game.json]
@@ -86,7 +99,8 @@ if (import.meta.main) {
        bun start --photo|--report|--export  # legacy helpers
 
 Spectator records observations into a durable game log (not a season book).
---record defaults to the full file. ffmpeg/ffprobe required. Codex sign-in for vision.
+--live pulls an OBS RTSP/RTMP/SRT URL (LIVE_URL in .env, or --url) into short segments until Ctrl+C.
+--record defaults to the full finished file. ffmpeg/ffprobe required. Codex sign-in for vision.
 Add models later: bun start --enhance game.json --with summary`);
     } else {
       const mode =
@@ -100,28 +114,78 @@ Add models later: bun start --enhance game.json --with summary`);
         values.video,
         values.record,
         values.enhance,
+        values.live ? true : undefined,
       ].filter((v) => v !== undefined);
       if (exclusive.length > 1)
         throw new Error(
-          "Choose one of --record, --enhance, --video, --photo, --report, or --export",
+          "Choose one of --live, --record, --enhance, --video, --photo, --report, or --export",
         );
       if (
         !values.video &&
         !values.record &&
+        !values.live &&
         [values.start, values.duration, values.fps].some((v) => v !== undefined)
       )
         throw new Error(
-          "--start, --duration, and --fps require --record or --video",
+          "--start/--duration require --record or --video; --fps also allowed with --live",
         );
-      if (values.output && !values.video && !values.record && !values.enhance)
-        throw new Error("--output requires --record, --video, or --enhance");
+      if (
+        values.output &&
+        !values.video &&
+        !values.record &&
+        !values.enhance &&
+        !values.live
+      )
+        throw new Error(
+          "--output requires --live, --record, --video, or --enhance",
+        );
+      if ((values.demo || values.url || values.segment || values["max-seconds"]) && !values.live)
+        throw new Error("--demo, --url, --segment, and --max-seconds require --live");
+      if (values.live && !values.demo && !resolveLiveUrl(values.url))
+        throw new Error(
+          "Live capture needs LIVE_URL in .env, --url rtsp://…, or --demo",
+        );
 
       const databasePath = resolve(
         values.data ?? resolve(import.meta.dir, "../data/baseball.sqlite"),
       );
       const teamId = values.report ?? values.export;
 
-      if (values.record) {
+      if (values.live) {
+        const output = values.output ? resolve(values.output) : undefined;
+        const controller = new AbortController();
+        const cancel = () => controller.abort();
+        process.on("SIGINT", cancel);
+        try {
+          const log = await recordLive(
+            new CodexVisionModel({ model: process.env.VISION_MODEL }),
+            {
+              source: values.demo ? "demo" : "stream",
+              url: values.demo ? undefined : resolveLiveUrl(values.url),
+              segmentSeconds: values.segment
+                ? numberOption(values.segment, 5)
+                : undefined,
+              fps: values.fps ? numberOption(values.fps, 1) : undefined,
+              maxSeconds: values["max-seconds"]
+                ? numberOption(values["max-seconds"], 30)
+                : undefined,
+              mode,
+              signal: controller.signal,
+              onProgress: async (progress) => {
+                if (output) await checkpointJson(output, progress);
+                console.error(
+                  `Live recorded ${progress.coverage.analyzedThrough.toFixed(1)}s (Ctrl+C to stop)`,
+                );
+              },
+            },
+          );
+          if (output) await checkpointJson(output, log);
+          console.log(formatRecordingSummary(log));
+          if (!output) console.log(JSON.stringify(log, null, 2));
+        } finally {
+          process.off("SIGINT", cancel);
+        }
+      } else if (values.record) {
         const input = await realpath(values.record);
         const output = values.output ? resolve(values.output) : undefined;
         if (
@@ -257,7 +321,11 @@ Add models later: bun start --enhance game.json --with summary`);
           clearHistory: () => spectator.clearHistory(),
           record: (path, options) => spectator.record(path, options),
           sample: (path, options) =>
-            spectator.record(path, { ...options, duration: options?.duration ?? 120 }),
+            spectator.record(path, {
+              ...options,
+              duration: options?.duration ?? 120,
+            }),
+          recordLive: (options) => spectator.recordLive(options),
         });
       }
     }
